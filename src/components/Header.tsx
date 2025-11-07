@@ -1,14 +1,25 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingCart, Search, Menu, X } from "lucide-react";
+import { ShoppingCart, Search, Menu, X, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { getCart, getCartCount } from "@/lib/cart";
+import { OrderTrackDialog } from "@/components/OrderTrackDialog";
+import { categories } from "@/data/categories";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
 
 export const Header = () => {
   const [cartCount, setCartCount] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isOrderTrackOpen, setIsOrderTrackOpen] = useState(false);
 
   useEffect(() => {
     const updateCartCount = () => {
@@ -32,15 +43,60 @@ export const Header = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-6">
-            <Link to="/products" className="text-sm font-medium transition-colors hover:text-primary">
-              Products
+          <nav className="hidden md:flex items-center space-x-1">
+            <NavigationMenu>
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="text-sm font-medium h-auto py-2">
+                    OUR SHOP
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="w-[600px] p-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        {categories.map((category) => (
+                          <div key={category.id} className="space-y-2">
+                            <Link 
+                              to={`/products?category=${category.id}`}
+                              className="font-semibold text-sm hover:text-primary block"
+                            >
+                              {category.name}
+                            </Link>
+                            {category.subcategories && (
+                              <ul className="space-y-1 pl-3">
+                                {category.subcategories.map((sub) => (
+                                  <li key={sub}>
+                                    <Link
+                                      to={`/products?category=${category.id}&subcategory=${sub}`}
+                                      className="text-sm text-muted-foreground hover:text-primary block"
+                                    >
+                                      {sub}
+                                    </Link>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+            
+            <Link to="/blog" className="text-sm font-medium transition-colors hover:text-primary px-4 py-2">
+              BLOG
             </Link>
-            <Link to="/products?filter=featured" className="text-sm font-medium transition-colors hover:text-primary">
-              Featured
-            </Link>
-            <Link to="/products" className="text-sm font-medium transition-colors hover:text-primary">
-              Categories
+            
+            <button 
+              onClick={() => setIsOrderTrackOpen(true)}
+              className="text-sm font-medium transition-colors hover:text-primary px-4 py-2 text-[hsl(30,100%,50%)]"
+            >
+              ORDER TRACK
+            </button>
+            
+            <Link to="/about" className="text-sm font-medium transition-colors hover:text-primary px-4 py-2">
+              ABOUT
             </Link>
           </nav>
 
@@ -86,25 +142,36 @@ export const Header = () => {
               className="block text-sm font-medium transition-colors hover:text-primary"
               onClick={() => setIsMenuOpen(false)}
             >
-              Products
+              OUR SHOP
             </Link>
             <Link 
-              to="/products?filter=featured" 
+              to="/blog" 
               className="block text-sm font-medium transition-colors hover:text-primary"
               onClick={() => setIsMenuOpen(false)}
             >
-              Featured
+              BLOG
             </Link>
+            <button 
+              onClick={() => {
+                setIsOrderTrackOpen(true);
+                setIsMenuOpen(false);
+              }}
+              className="block text-sm font-medium transition-colors hover:text-primary text-[hsl(30,100%,50%)]"
+            >
+              ORDER TRACK
+            </button>
             <Link 
-              to="/products" 
+              to="/about" 
               className="block text-sm font-medium transition-colors hover:text-primary"
               onClick={() => setIsMenuOpen(false)}
             >
-              Categories
+              ABOUT
             </Link>
           </div>
         )}
       </div>
+      
+      <OrderTrackDialog open={isOrderTrackOpen} onOpenChange={setIsOrderTrackOpen} />
     </header>
   );
 };
