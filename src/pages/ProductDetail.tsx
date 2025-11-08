@@ -1,18 +1,23 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Check, Download, Shield, ShoppingCart, Star } from "lucide-react";
+import { ArrowLeft, Check, Download, Shield, ShoppingCart, Star, Facebook, Twitter, Linkedin, Share2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Textarea } from "@/components/ui/textarea";
 import { products } from "@/data/products";
 import { addToCart } from "@/lib/cart";
 import { toast } from "sonner";
 import { ProductCard } from "@/components/ProductCard";
+import { useState } from "react";
 
 const ProductDetail = () => {
   const { id } = useParams();
   const product = products.find((p) => p.id === id);
+  const [reviewText, setReviewText] = useState("");
+  const [rating, setRating] = useState(5);
 
   if (!product) {
     return (
@@ -35,6 +40,19 @@ const ProductDetail = () => {
     addToCart(product);
     toast.success(`${product.title} added to cart`);
   };
+
+  const handleSubmitReview = () => {
+    if (!reviewText.trim()) {
+      toast.error("Please write a review");
+      return;
+    }
+    toast.success("Review submitted successfully!");
+    setReviewText("");
+    setRating(5);
+  };
+
+  const shareUrl = window.location.href;
+  const shareTitle = product.title;
 
   return (
     <div className="min-h-screen py-8">
@@ -139,72 +157,162 @@ const ProductDetail = () => {
           </div>
         </div>
 
-        {/* Details Tabs */}
+        {/* Description & Reviews */}
+        <div className="mb-12 space-y-4">
+          <Accordion type="single" collapsible defaultValue="description" className="w-full">
+            <AccordionItem value="description">
+              <AccordionTrigger className="text-xl font-semibold">Description</AccordionTrigger>
+              <AccordionContent>
+                <Card>
+                  <CardContent className="p-6">
+                    <p className="text-muted-foreground leading-relaxed mb-6">{product.description}</p>
+                    
+                    {product.features && product.features.length > 0 && (
+                      <div className="mb-6">
+                        <h3 className="font-semibold mb-3">Key Features:</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {product.features.map((feature, index) => (
+                            <div key={index} className="flex items-start gap-2">
+                              <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                              <span className="text-sm">{feature}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {product.whatIncluded && product.whatIncluded.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold mb-3">What's Included:</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {product.whatIncluded.map((item, index) => (
+                            <div key={index} className="flex items-start gap-2">
+                              <Check className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
+                              <span className="text-sm">{item}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="reviews">
+              <AccordionTrigger className="text-xl font-semibold">
+                Reviews ({product.reviewCount})
+              </AccordionTrigger>
+              <AccordionContent>
+                <Card>
+                  <CardContent className="p-6">
+                    {/* Submit Review */}
+                    <div className="mb-8">
+                      <h3 className="font-semibold mb-4">Write a Review</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">Your Rating</label>
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button
+                                key={star}
+                                onClick={() => setRating(star)}
+                                className="focus:outline-none transition-colors"
+                              >
+                                <Star
+                                  className={`h-6 w-6 ${
+                                    star <= rating
+                                      ? "fill-yellow-400 text-yellow-400"
+                                      : "text-muted-foreground"
+                                  }`}
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">Your Review</label>
+                          <Textarea
+                            placeholder="Share your experience with this product..."
+                            value={reviewText}
+                            onChange={(e) => setReviewText(e.target.value)}
+                            rows={4}
+                          />
+                        </div>
+                        <Button onClick={handleSubmitReview}>Submit Review</Button>
+                      </div>
+                    </div>
+
+                    <Separator className="my-6" />
+
+                    {/* Sample Reviews */}
+                    <div className="space-y-6">
+                      <h3 className="font-semibold">Customer Reviews</h3>
+                      <div className="space-y-4">
+                        <div className="border-b pb-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="flex">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                              ))}
+                            </div>
+                            <span className="text-sm font-medium">Excellent Product!</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Great quality and fast delivery. Highly recommended!
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-2">- Customer</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </div>
+
+        {/* Social Share */}
         <Card className="mb-12">
           <CardContent className="p-6">
-            <Tabs defaultValue="description">
-              <TabsList className="mb-6">
-                <TabsTrigger value="description">Description</TabsTrigger>
-                <TabsTrigger value="includes">What's Included</TabsTrigger>
-                <TabsTrigger value="features">Features</TabsTrigger>
-                <TabsTrigger value="requirements">Requirements</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="description">
-                <p className="text-muted-foreground leading-relaxed">{product.description}</p>
-              </TabsContent>
-
-              <TabsContent value="includes">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {product.whatIncluded.map((item, index) => (
-                    <div key={index} className="flex items-start gap-3">
-                      <Check className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="features">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {product.features.map((feature, index) => (
-                    <div key={index} className="flex items-start gap-3">
-                      <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <span>{feature}</span>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="requirements">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold mb-2">System Requirements</h3>
-                    <ul className="space-y-2">
-                      {product.requirements.map((req, index) => (
-                        <li key={index} className="text-muted-foreground">• {req}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-2">Compatibility</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {product.compatibility.map((item, index) => (
-                        <Badge key={index} variant="secondary">{item}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-2">File Formats</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {product.fileFormat.map((format, index) => (
-                        <Badge key={index} variant="outline">{format}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
+            <h3 className="font-semibold mb-4">Share:</h3>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank')}
+              >
+                <Facebook className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareTitle)}`, '_blank')}
+              >
+                <Twitter className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, '_blank')}
+              >
+                <Linkedin className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => window.open(`https://pinterest.com/pin/create/button/?url=${encodeURIComponent(shareUrl)}&description=${encodeURIComponent(shareTitle)}`, '_blank')}
+              >
+                <Share2 className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => window.open(`https://telegram.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareTitle)}`, '_blank')}
+              >
+                <Send className="h-5 w-5" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

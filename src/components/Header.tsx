@@ -44,6 +44,10 @@ export const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-1">
+            <Link to="/" className="text-sm font-medium transition-colors hover:text-primary px-4 py-2">
+              HOME
+            </Link>
+            
             <NavigationMenu>
               <NavigationMenuList>
                 <NavigationMenuItem>
@@ -137,6 +141,13 @@ export const Header = () => {
         {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="md:hidden py-4 space-y-4 border-t">
+            <Link 
+              to="/" 
+              className="block text-sm font-medium transition-colors hover:text-primary"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              HOME
+            </Link>
             <Link 
               to="/products" 
               className="block text-sm font-medium transition-colors hover:text-primary"
