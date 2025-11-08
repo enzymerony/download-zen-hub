@@ -18,6 +18,10 @@ export const ProductCard = ({ product }: ProductCardProps) => {
     toast.success(`${product.title} added to cart`);
   };
 
+  const discountPercentage = product.originalPrice 
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    : 0;
+
   return (
     <Link to={`/product/${product.id}`}>
       <Card className="h-full hover-lift cursor-pointer group">
@@ -28,12 +32,11 @@ export const ProductCard = ({ product }: ProductCardProps) => {
               alt={product.title}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
-            {product.badge && (
+            {discountPercentage > 0 && (
               <Badge 
-                variant={product.badge === "sale" ? "destructive" : "default"}
-                className="absolute top-3 left-3 capitalize"
+                className="absolute top-3 left-3 bg-orange-500 hover:bg-orange-600 text-white border-0 font-bold"
               >
-                {product.badge}
+                -{discountPercentage}%
               </Badge>
             )}
           </div>
