@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -11,12 +10,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ProductCard } from "@/components/ProductCard";
+import { ProductFilters, FilterOptions } from "@/components/ProductFilters";
 import { products, categories } from "@/data/products";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const Products = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("popularity");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  // Calculate max price from products
+  const maxPrice = Math.ceil(Math.max(...products.map((p) => p.price)) / 10) * 10;
+
+  const [filters, setFilters] = useState<FilterOptions>({
+    priceRange: [0, maxPrice],
+    minRating: 0,
+    selectedCategory: "all",
+  });
 
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
@@ -32,8 +48,18 @@ const Products = () => {
     }
 
     // Filter by category
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter((p) => p.category.toLowerCase().replace(/\s+/g, "-") === selectedCategory);
+    if (filters.selectedCategory !== "all") {
+      filtered = filtered.filter((p) => p.category.toLowerCase().replace(/\s+/g, "-") === filters.selectedCategory);
+    }
+
+    // Filter by price range
+    filtered = filtered.filter(
+      (p) => p.price >= filters.priceRange[0] && p.price <= filters.priceRange[1]
+    );
+
+    // Filter by minimum rating
+    if (filters.minRating > 0) {
+      filtered = filtered.filter((p) => p.rating >= filters.minRating);
     }
 
     // Sort
@@ -55,7 +81,7 @@ const Products = () => {
     }
 
     return filtered;
-  }, [searchQuery, selectedCategory, sortBy]);
+  }, [searchQuery, filters, sortBy]);
 
   return (
     <div className="min-h-screen py-8">
@@ -68,77 +94,105 @@ const Products = () => {
           </p>
         </div>
 
-        {/* Filters */}
-        <div className="mb-8 space-y-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+        <div className="flex gap-6">
+          {/* Desktop Filters Sidebar */}
+          <aside className="hidden lg:block w-64 flex-shrink-0">
+            <ProductFilters
+              filters={filters}
+              onFiltersChange={setFilters}
+              categories={categories}
+              maxPrice={maxPrice}
+            />
+          </aside>
+
+          {/* Main Content */}
+          <div className="flex-1">
+            {/* Search and Sort Bar */}
+            <div className="mb-6 space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                {/* Mobile Filter Button */}
+                <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="lg:hidden">
+                      <SlidersHorizontal className="h-4 w-4 mr-2" />
+                      Filters
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-80 overflow-y-auto">
+                    <SheetHeader>
+                      <SheetTitle>Filters</SheetTitle>
+                    </SheetHeader>
+                    <div className="mt-6">
+                      <ProductFilters
+                        filters={filters}
+                        onFiltersChange={setFilters}
+                        categories={categories}
+                        maxPrice={maxPrice}
+                      />
+                    </div>
+                  </SheetContent>
+                </Sheet>
+
+                {/* Search */}
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search products..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+
+                {/* Sort */}
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="popularity">Most Popular</SelectItem>
+                    <SelectItem value="newest">Newest</SelectItem>
+                    <SelectItem value="rating">Highest Rated</SelectItem>
+                    <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                    <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            {/* Sort */}
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="popularity">Most Popular</SelectItem>
-                <SelectItem value="newest">Newest</SelectItem>
-                <SelectItem value="rating">Highest Rated</SelectItem>
-                <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                <SelectItem value="price-desc">Price: High to Low</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            {/* Results */}
+            <div className="mb-4 text-sm text-muted-foreground">
+              Showing {filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"}
+            </div>
 
-          {/* Categories */}
-          <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
-              <Badge
-                key={category.id}
-                variant={selectedCategory === category.id ? "default" : "outline"}
-                className="cursor-pointer hover-lift"
-                onClick={() => setSelectedCategory(category.id)}
-              >
-                {category.name} ({category.count})
-              </Badge>
-            ))}
+            {/* Products Grid */}
+            {filteredProducts.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-20">
+                <SlidersHorizontal className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2">No products found</h3>
+                <p className="text-muted-foreground mb-4">
+                  Try adjusting your search or filters
+                </p>
+                <Button onClick={() => {
+                  setSearchQuery("");
+                  setFilters({
+                    priceRange: [0, maxPrice],
+                    minRating: 0,
+                    selectedCategory: "all",
+                  });
+                }}>
+                  Clear Filters
+                </Button>
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Results */}
-        <div className="mb-4 text-sm text-muted-foreground">
-          Showing {filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"}
-        </div>
-
-        {/* Products Grid */}
-        {filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-20">
-            <SlidersHorizontal className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No products found</h3>
-            <p className="text-muted-foreground mb-4">
-              Try adjusting your search or filters
-            </p>
-            <Button onClick={() => {
-              setSearchQuery("");
-              setSelectedCategory("all");
-            }}>
-              Clear Filters
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );
