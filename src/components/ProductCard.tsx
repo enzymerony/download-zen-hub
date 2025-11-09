@@ -1,30 +1,21 @@
 import { Link } from "react-router-dom";
-import { ShoppingCart, Star, Eye } from "lucide-react";
+import { ShoppingCart, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Product } from "@/types/product";
 import { addToCart } from "@/lib/cart";
 import { toast } from "sonner";
-import { useState } from "react";
-import { QuickViewModal } from "./QuickViewModal";
 
 interface ProductCardProps {
   product: Product;
 }
 
 export const ProductCard = ({ product }: ProductCardProps) => {
-  const [quickViewOpen, setQuickViewOpen] = useState(false);
-
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     addToCart(product);
     toast.success(`${product.title} added to cart`);
-  };
-
-  const handleQuickView = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setQuickViewOpen(true);
   };
 
   const discountPercentage = product.originalPrice 
@@ -32,12 +23,6 @@ export const ProductCard = ({ product }: ProductCardProps) => {
     : 0;
 
   return (
-    <>
-      <QuickViewModal 
-        product={product}
-        open={quickViewOpen}
-        onOpenChange={setQuickViewOpen}
-      />
     <Link to={`/product/${product.id}`}>
       <Card className="h-full hover-lift cursor-pointer group">
         <CardHeader className="p-0">
@@ -54,14 +39,6 @@ export const ProductCard = ({ product }: ProductCardProps) => {
                 -{discountPercentage}%
               </Badge>
             )}
-            <Button
-              size="icon"
-              variant="secondary"
-              className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={handleQuickView}
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
           </div>
         </CardHeader>
         <CardContent className="p-4">
@@ -97,6 +74,5 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         </CardFooter>
       </Card>
     </Link>
-    </>
   );
 };
