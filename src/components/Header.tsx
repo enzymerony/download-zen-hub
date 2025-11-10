@@ -37,16 +37,16 @@ export const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
+          <a href="/" className="flex items-center space-x-2">
             <div className="h-8 w-8 rounded-lg bg-gradient-primary" />
             <span className="text-xl font-bold">10 ANA Digital</span>
-          </Link>
+          </a>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-0.5">
-            <Link to="/" className="text-sm font-medium transition-colors hover:text-primary px-3 py-2">
+            <a href="/" className="text-sm font-medium transition-colors hover:text-primary px-3 py-2">
               HOME
-            </Link>
+            </a>
             
             <NavigationMenu>
               <NavigationMenuList>
@@ -141,13 +141,12 @@ export const Header = () => {
         {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="md:hidden py-4 space-y-4 border-t">
-            <Link 
-              to="/" 
+            <a 
+              href="/" 
               className="block text-sm font-medium transition-colors hover:text-primary"
-              onClick={() => setIsMenuOpen(false)}
             >
               HOME
-            </Link>
+            </a>
             <Link 
               to="/products" 
               className="block text-sm font-medium transition-colors hover:text-primary"
