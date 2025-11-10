@@ -43,15 +43,15 @@ export const Header = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-1">
-            <Link to="/" className="text-sm font-medium transition-colors hover:text-primary px-4 py-2">
+          <nav className="hidden md:flex items-center space-x-0.5">
+            <Link to="/" className="text-sm font-medium transition-colors hover:text-primary px-3 py-2">
               HOME
             </Link>
             
             <NavigationMenu>
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm font-medium h-auto py-2">
+                  <NavigationMenuTrigger className="text-sm font-medium h-auto py-2 px-3">
                     OUR SHOP
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
@@ -88,18 +88,18 @@ export const Header = () => {
               </NavigationMenuList>
             </NavigationMenu>
             
-            <Link to="/blog" className="text-sm font-medium transition-colors hover:text-primary px-4 py-2">
+            <Link to="/blog" className="text-sm font-medium transition-colors hover:text-primary px-3 py-2">
               BLOG
             </Link>
             
             <button 
               onClick={() => setIsOrderTrackOpen(true)}
-              className="text-sm font-medium transition-colors hover:text-primary px-4 py-2 text-[hsl(30,100%,50%)]"
+              className="text-sm font-medium transition-colors hover:text-primary px-3 py-2 text-[hsl(30,100%,50%)]"
             >
               ORDER TRACK
             </button>
             
-            <Link to="/about" className="text-sm font-medium transition-colors hover:text-primary px-4 py-2">
+            <Link to="/about" className="text-sm font-medium transition-colors hover:text-primary px-3 py-2">
               ABOUT
             </Link>
           </nav>
