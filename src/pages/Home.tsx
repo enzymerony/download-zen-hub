@@ -14,77 +14,73 @@ const Home = () => {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="bg-gradient-hero py-16 md:py-24">
+      <section className="bg-gradient-hero py-12 md:py-16">
         <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-8 items-center">
+          <div className="grid md:grid-cols-2 gap-6 items-center">
             {/* Left Content */}
-            <div className="space-y-6">
-              <h1 className="text-3xl md:text-5xl font-bold leading-tight">
+            <div className="space-y-4">
+              <h1 className="text-2xl md:text-4xl font-bold leading-tight">
                 Digital Product Services
-                <span className="text-gradient block mt-2">
+                <span className="text-gradient block mt-1">
                   For Daily Essential
                 </span>
               </h1>
               
-              <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                আমরা প্রদান করি সম্পূর্ণ ডিজিটাল সেবা যা আপনার দৈনন্দিন প্রয়োজন পূরণ করে। সিম অফার থেকে শুরু করে সোশ্যাল মিডিয়া সার্ভিস, ওয়েবসাইট এবং প্রফেশনাল সিভি - সব কিছুই পাবেন এক জায়গায়। আমাদের সেবা দ্রুত, নির্ভরযোগ্য এবং সাশ্রয়ী মূল্যে উপলব্ধ।
+              <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
+                আমরা প্রদান করি সম্পূর্ণ ডিজিটাল সেবা যা আপনার দৈনন্দিন প্রয়োজন পূরণ করে। সিম অফার থেকে শুরু করে সোশ্যাল মিডিয়া সার্ভিস, ওয়েবসাইট এবং প্রফেশনাল সিভি - সব কিছুই পাবেন এক জায়গায়।
               </p>
 
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-foreground">আমাদের সেবাসমূহ:</h3>
-                <ul className="space-y-2 text-sm md:text-base">
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <div className="space-y-2">
+                <h3 className="text-base font-semibold text-foreground">আমাদের সেবাসমূহ:</h3>
+                <ul className="space-y-1.5 text-xs md:text-sm">
+                  <li className="flex items-start gap-1.5">
+                    <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                     <span>যেকোনো সিমের ইন্টারনেট এবং মিনিট এর বান্ডেল প্যাকেজ ইত্যাদি।</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <li className="flex items-start gap-1.5">
+                    <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                     <span>ফেসবুক ফলোয়ার, লাইক, রিএকশন, কমেন্টস, শেয়ার ইত্যাদি।</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <li className="flex items-start gap-1.5">
+                    <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                     <span>YouTube subscriber, ওয়াচ টাইম, লাইক, কমেন্টস, শেয়ার।</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <li className="flex items-start gap-1.5">
+                    <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                     <span>টিকটক ফলোয়ার, লাইক, ভিউ ইত্যাদি।</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                    <span>এছাড়াও ইনস্টাগ্রাম টেলিগ্রাম সহ সকল সোশ্যাল মিডিয়ার সকল সার্ভিস।</span>
+                  <li className="flex items-start gap-1.5">
+                    <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <span>ইনস্টাগ্রাম টেলিগ্রাম সহ সকল সোশ্যাল মিডিয়ার সকল সার্ভিস।</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <li className="flex items-start gap-1.5">
+                    <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                     <span>ওয়েবসাইটের যেকোনো দেশের ট্রাফিক সার্ভিস।</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                    <span>NID, E-Tin, Zero Return, Bkash/Nagad পার্সোনাল স্টেটমেন্ট, জন্ম নিবন্ধন, ফোন নাম্বার দিয়ে এন আই ডি এবং লোকেশন বের করা।</span>
+                  <li className="flex items-start gap-1.5">
+                    <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <span>NID, E-Tin, জন্ম নিবন্ধন, Bkash/Nagad স্টেটমেন্ট ইত্যাদি।</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                    <span>নাম্বার বায়োমেট্রিক।</span>
+                  <li className="flex items-start gap-1.5">
+                    <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <span>নাম্বার বায়োমেট্রিক এবং IMEI সার্ভিস।</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                    <span>IMEI To অ্যাক্টিভ নাম্বার ইত্যাদি সার্ভিস প্রদান করা হয়।</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <li className="flex items-start gap-1.5">
+                    <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                     <span>প্রফেশনাল সিভি তৈরি।</span>
                   </li>
                 </ul>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <Link to="/products">
-                  <Button variant="hero" size="lg" className="w-full sm:w-auto">
+                  <Button variant="hero" size="default" className="w-full sm:w-auto">
                     Browse Products
-                    <ArrowRight className="ml-2 h-5 w-5" />
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
                 <Link to="/products?filter=featured">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                  <Button variant="outline" size="default" className="w-full sm:w-auto">
                     View Featured
                   </Button>
                 </Link>
@@ -96,7 +92,7 @@ const Home = () => {
               <img 
                 src={heroImage} 
                 alt="Digital Services Illustration" 
-                className="w-full max-w-lg h-auto object-contain drop-shadow-2xl"
+                className="w-full max-w-md h-auto object-contain drop-shadow-2xl"
               />
             </div>
           </div>
