@@ -18,7 +18,7 @@ const Home = () => {
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-6 items-center">
             {/* Left Content */}
-            <div className="space-y-4">
+            <div className="space-y-4 pl-6 md:pl-12">
               <h1 className="text-2xl md:text-4xl font-bold leading-tight">
                 Digital Product Services
                 <span className="text-gradient block mt-1">
