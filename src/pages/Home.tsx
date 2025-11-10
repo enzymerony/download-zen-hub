@@ -14,7 +14,7 @@ const Home = () => {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="bg-gradient-hero py-12 md:py-16">
+      <section className="bg-gradient-hero pt-6 md:pt-8 pb-12 md:pb-16">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-6 items-center">
             {/* Left Content */}
