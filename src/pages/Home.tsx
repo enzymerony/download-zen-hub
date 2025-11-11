@@ -137,14 +137,8 @@ const Home = () => {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-6">
-            {featuredProducts.slice(0, 5).map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-            {featuredProducts.slice(5, 10).map(product => (
+            {featuredProducts.slice(0, 5).map(product => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
