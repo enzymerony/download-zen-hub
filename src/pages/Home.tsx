@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProductCard } from "@/components/ProductCard";
 import { CategoryCard } from "@/components/CategoryCard";
+import ContactSection from "@/components/ContactSection";
 import { products } from "@/data/products";
 import { categories } from "@/data/categories";
 import heroImage from "@/assets/hero-digital-services.png";
@@ -320,25 +321,8 @@ const Home = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-primary text-primary-foreground">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Ready to Start Building?
-            </h2>
-            <p className="text-xl mb-8 opacity-90">
-              Browse our collection of premium digital products and take your projects to the next level.
-            </p>
-            <Link to="/products">
-              <Button variant="secondary" size="lg">
-                Explore Products
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* Contact Section */}
+      <ContactSection />
     </div>
   );
 };
