@@ -150,6 +150,126 @@ const Home = () => {
         </div>
       </section>
 
+      {/* All Sim Offer Products */}
+      <section className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-center mb-12">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-2">All Sim Offer</h2>
+              <p className="text-muted-foreground">Best mobile operator packages</p>
+            </div>
+            <Link to="/products?category=all-sim-offer">
+              <Button variant="outline">
+                View All
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+            {products.filter(p => p.category === "all-sim-offer").slice(0, 6).map(product => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Social Media Services Products */}
+      <section className="py-20 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-center mb-12">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-2">Social Media Services</h2>
+              <p className="text-muted-foreground">Grow your social presence</p>
+            </div>
+            <Link to="/products?category=social-media-services">
+              <Button variant="outline">
+                View All
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+            {products.filter(p => p.category === "social-media-services").slice(0, 6).map(product => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Digital Services Products */}
+      <section className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-center mb-12">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-2">Digital Services</h2>
+              <p className="text-muted-foreground">Professional digital solutions</p>
+            </div>
+            <Link to="/products?category=digital-services">
+              <Button variant="outline">
+                View All
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+            {products.filter(p => p.category === "digital-services").slice(0, 6).map(product => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Website Services Products */}
+      <section className="py-20 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-center mb-12">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-2">Website Services</h2>
+              <p className="text-muted-foreground">Build your online presence</p>
+            </div>
+            <Link to="/products?category=website-services">
+              <Button variant="outline">
+                View All
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+            {products.filter(p => p.category === "website-services").slice(0, 6).map(product => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Smart CV Make Products */}
+      <section className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-center mb-12">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-2">Smart CV Make</h2>
+              <p className="text-muted-foreground">Professional CV templates</p>
+            </div>
+            <Link to="/products?category=smart-cv-make">
+              <Button variant="outline">
+                View All
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+            {products.filter(p => p.category === "smart-cv-make").slice(0, 6).map(product => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section className="py-20">
         <div className="container mx-auto px-4">
