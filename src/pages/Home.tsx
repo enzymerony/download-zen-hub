@@ -101,7 +101,7 @@ const Home = () => {
       </section>
 
       {/* Categories Section */}
-      <section className="py-20">
+      <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">ক্যাটাগরি</h2>
@@ -119,7 +119,7 @@ const Home = () => {
       </section>
 
       {/* Top Selling Products */}
-      <section className="py-20 bg-muted/30">
+      <section className="py-12 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-12">
             <div className="flex items-center gap-3">
@@ -146,7 +146,7 @@ const Home = () => {
       </section>
 
       {/* All Sim Offer Products */}
-      <section className="py-20">
+      <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-12">
             <div>
@@ -170,7 +170,7 @@ const Home = () => {
       </section>
 
       {/* Social Media Services Products */}
-      <section className="py-20 bg-muted/30">
+      <section className="py-12 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-12">
             <div>
@@ -194,7 +194,7 @@ const Home = () => {
       </section>
 
       {/* Digital Services Products */}
-      <section className="py-20">
+      <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-12">
             <div>
@@ -218,7 +218,7 @@ const Home = () => {
       </section>
 
       {/* Website Services Products */}
-      <section className="py-20 bg-muted/30">
+      <section className="py-12 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-12">
             <div>
@@ -242,7 +242,7 @@ const Home = () => {
       </section>
 
       {/* Smart CV Make Products */}
-      <section className="py-20">
+      <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-12">
             <div>
@@ -266,7 +266,7 @@ const Home = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20">
+      <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Choose Us</h2>
