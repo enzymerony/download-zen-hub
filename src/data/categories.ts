@@ -48,5 +48,10 @@ export const categories: Category[] = [
     id: "digital-services",
     name: "Digital Services",
     icon: "digital-services.png"
+  },
+  {
+    id: "pdf-to-image",
+    name: "PDF To Image",
+    icon: "digital-services.png"
   }
 ];
