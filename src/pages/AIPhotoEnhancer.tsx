@@ -64,36 +64,43 @@ const AIPhotoEnhancer = () => {
 
     setIsProcessing(true);
     
-    // Simulate AI processing with a realistic delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/enhance-photo`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            image: originalImage,
+            enhancementLevel: enhancementLevel[0]
+          })
+        }
+      );
 
-    // For demo purposes, we'll apply CSS filters to simulate enhancement
-    // In production, this would call an AI API like Replicate, Lovable AI, or similar
-    const img = new Image();
-    img.src = originalImage;
-    
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      canvas.width = img.width;
-      canvas.height = img.height;
-      
-      if (ctx) {
-        // Apply enhancement filters
-        ctx.filter = `contrast(${1 + enhancementLevel[0] / 100}) brightness(${1 + enhancementLevel[0] / 200}) saturate(${1 + enhancementLevel[0] / 150}) sharpen(${enhancementLevel[0] / 50})`;
-        ctx.drawImage(img, 0, 0);
-        
-        const enhanced = canvas.toDataURL('image/jpeg', 0.95);
-        setEnhancedImage(enhanced);
-        setIsProcessing(false);
-        
-        toast({
-          title: "Enhancement Complete!",
-          description: "Your photo has been enhanced with AI",
-        });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Enhancement failed');
       }
-    };
+
+      const data = await response.json();
+      setEnhancedImage(data.enhancedImage);
+      
+      toast({
+        title: "Enhancement Complete!",
+        description: "Your photo has been enhanced with AI",
+      });
+    } catch (error) {
+      console.error('Enhancement error:', error);
+      toast({
+        title: "Enhancement Failed",
+        description: error instanceof Error ? error.message : 'Failed to enhance image',
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const downloadImage = () => {
@@ -365,11 +372,10 @@ const AIPhotoEnhancer = () => {
           </div>
         )}
 
-        {/* Demo Note */}
-        <Card className="max-w-2xl mx-auto mt-8 p-4 bg-accent/5 border-accent">
-          <p className="text-sm text-center text-muted-foreground">
-            <strong>Note:</strong> This is a demo version using simulated AI enhancement. 
-            For production-grade AI photo enhancement, connect to AI services like Lovable AI or Replicate.
+        {/* AI Powered Note */}
+        <Card className="max-w-2xl mx-auto mt-8 p-4 bg-primary/10 border-primary/20">
+          <p className="text-sm text-center text-foreground">
+            <strong>✨ Powered by Real AI:</strong> This uses Lovable AI with advanced image enhancement technology for professional quality results.
           </p>
         </Card>
       </div>
