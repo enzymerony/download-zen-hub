@@ -1,1 +1,4 @@
 project_id = "lfijhozoloipvmneidzc"
+
+[functions.enhance-photo]
+verify_jwt = false
