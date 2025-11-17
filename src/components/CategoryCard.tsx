@@ -80,9 +80,10 @@ export const CategoryCard = ({ category }: CategoryCardProps) => {
     </CardContent>
   );
 
-  if (category.id === "pdf-to-image") {
+  if (category.id === "pdf-to-image" || category.id === "ai-photo-enhancer") {
+    const route = category.id === "pdf-to-image" ? "/pdf-to-image" : "/ai-photo-enhancer";
     return (
-      <Link to="/pdf-to-image">
+      <Link to={route}>
         <Card className="group hover-lift cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-xl border-2">
           {cardContent}
         </Card>
