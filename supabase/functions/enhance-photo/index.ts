@@ -14,9 +14,45 @@ serve(async (req) => {
   try {
     const { image, enhancementLevel = 50 } = await req.json();
     
+    // Validate image exists
     if (!image) {
       return new Response(
         JSON.stringify({ error: 'Image data is required' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Validate image format
+    if (!image.startsWith('data:image/')) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid image format. Must be a valid image data URL.' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Validate image size (10MB limit)
+    const sizeInBytes = (image.length * 3) / 4;
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (sizeInBytes > maxSize) {
+      return new Response(
+        JSON.stringify({ error: 'Image size exceeds 10MB limit' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Validate enhancement level
+    if (typeof enhancementLevel !== 'number' || enhancementLevel < 0 || enhancementLevel > 100) {
+      return new Response(
+        JSON.stringify({ error: 'Enhancement level must be a number between 0 and 100' }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
