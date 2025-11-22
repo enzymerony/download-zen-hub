@@ -9,7 +9,6 @@ import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import PdfToImage from "./pages/PdfToImage";
-import AIPhotoEnhancer from "./pages/AIPhotoEnhancer";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,7 +26,6 @@ const App = () => (
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/pdf-to-image" element={<PdfToImage />} />
-            <Route path="/ai-photo-enhancer" element={<AIPhotoEnhancer />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
