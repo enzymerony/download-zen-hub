@@ -2,6 +2,13 @@ import { useState, useEffect, createContext, useContext, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * SECURITY NOTE: Client-side isAdmin checks are for UI convenience only.
+ * All actual data operations are protected by Row Level Security (RLS) policies
+ * in the database. The frontend cannot be trusted for authorization decisions.
+ * RLS policies using has_role() function are the true security boundary.
+ */
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -29,7 +36,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .maybeSingle();
     
     if (error) {
-      console.error('Error checking admin role:', error);
+      // Only log in development to prevent information leakage
+      if (import.meta.env.DEV) {
+        console.error('Error checking admin role:', error);
+      }
       return false;
     }
     return !!data;

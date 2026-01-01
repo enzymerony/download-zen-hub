@@ -20,6 +20,19 @@ import {
 import { toast } from 'sonner';
 import { categories } from '@/data/categories';
 
+/**
+ * SECURITY NOTE: Client-side isAdmin checks are for UI convenience only.
+ * All product operations are protected by Row Level Security (RLS) policies.
+ * The frontend authorization cannot be trusted - RLS is the security boundary.
+ */
+
+// Helper to log errors only in development mode
+const logError = (message: string, error: unknown) => {
+  if (import.meta.env.DEV) {
+    console.error(message, error);
+  }
+};
+
 interface DBProduct {
   id: string;
   title: string;
@@ -102,7 +115,7 @@ export default function AdminDashboard() {
 
     if (error) {
       toast.error('Failed to load products');
-      console.error(error);
+      logError('Product fetch error:', error);
     } else {
       setProducts(data || []);
     }
@@ -130,7 +143,7 @@ export default function AdminDashboard() {
       .upload(fileName, file);
 
     if (uploadError) {
-      console.error('Upload error:', uploadError);
+      logError('Upload error:', uploadError);
       return null;
     }
 
@@ -217,7 +230,7 @@ export default function AdminDashboard() {
 
       if (updateError) {
         setError('Failed to update product');
-        console.error(updateError);
+        logError('Product update error:', updateError);
       } else {
         toast.success('Product updated successfully');
         setDialogOpen(false);
@@ -230,7 +243,7 @@ export default function AdminDashboard() {
 
       if (insertError) {
         setError('Failed to create product');
-        console.error(insertError);
+        logError('Product insert error:', insertError);
       } else {
         toast.success('Product created successfully');
         setDialogOpen(false);
@@ -253,7 +266,7 @@ export default function AdminDashboard() {
 
     if (error) {
       toast.error('Failed to delete product');
-      console.error(error);
+      logError('Product delete error:', error);
     } else {
       toast.success('Product deleted');
       fetchProducts();
