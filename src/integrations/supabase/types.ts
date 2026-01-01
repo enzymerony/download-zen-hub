@@ -14,16 +14,123 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      products: {
+        Row: {
+          badge: string | null
+          category: string
+          compatibility: string[] | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          featured: boolean | null
+          features: string[] | null
+          file_format: string[] | null
+          id: string
+          image_url: string | null
+          last_update: string | null
+          original_price: number | null
+          price: number
+          rating: number | null
+          requirements: string[] | null
+          review_count: number | null
+          short_description: string | null
+          subcategory: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          version: string | null
+          what_included: string[] | null
+        }
+        Insert: {
+          badge?: string | null
+          category: string
+          compatibility?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          featured?: boolean | null
+          features?: string[] | null
+          file_format?: string[] | null
+          id?: string
+          image_url?: string | null
+          last_update?: string | null
+          original_price?: number | null
+          price: number
+          rating?: number | null
+          requirements?: string[] | null
+          review_count?: number | null
+          short_description?: string | null
+          subcategory?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          version?: string | null
+          what_included?: string[] | null
+        }
+        Update: {
+          badge?: string | null
+          category?: string
+          compatibility?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          featured?: boolean | null
+          features?: string[] | null
+          file_format?: string[] | null
+          id?: string
+          image_url?: string | null
+          last_update?: string | null
+          original_price?: number | null
+          price?: number
+          rating?: number | null
+          requirements?: string[] | null
+          review_count?: number | null
+          short_description?: string | null
+          subcategory?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          version?: string | null
+          what_included?: string[] | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +257,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const
