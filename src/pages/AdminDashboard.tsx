@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useAdminDeposits } from '@/hooks/useWallet';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,9 +14,11 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Loader2, Plus, Pencil, Trash2, LogOut, Package, 
-  Upload, AlertCircle, CheckCircle, Image as ImageIcon
+  Upload, AlertCircle, CheckCircle, Image as ImageIcon,
+  Wallet, Clock, XCircle, Check, X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { categories } from '@/data/categories';
@@ -93,6 +96,15 @@ export default function AdminDashboard() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('products');
+  
+  const { 
+    deposits, 
+    loading: depositsLoading, 
+    approveDeposit, 
+    rejectDeposit, 
+    refetch: refetchDeposits 
+  } = useAdminDeposits();
 
   useEffect(() => {
     // Wait for both auth and admin check to complete
@@ -316,7 +328,7 @@ export default function AdminDashboard() {
 
       <main className="container mx-auto px-4 py-8">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>Total Products</CardDescription>
@@ -333,113 +345,254 @@ export default function AdminDashboard() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
+              <CardDescription>Pending Deposits</CardDescription>
+              <CardTitle className="text-3xl text-yellow-600">
+                {deposits.filter(d => d.status === 'pending').length}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
               <CardDescription>Categories</CardDescription>
               <CardTitle className="text-3xl">{categories.length}</CardTitle>
             </CardHeader>
           </Card>
         </div>
 
-        {/* Products Section */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Products</CardTitle>
-              <CardDescription>Manage your digital products</CardDescription>
-            </div>
-            <Button onClick={openAddDialog}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Product
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {loadingProducts ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : products.length === 0 ? (
-              <div className="text-center py-12">
-                <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">No products yet</p>
-                <Button className="mt-4" onClick={openAddDialog}>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="products" className="gap-2">
+              <Package className="h-4 w-4" />
+              Products
+            </TabsTrigger>
+            <TabsTrigger value="deposits" className="gap-2">
+              <Wallet className="h-4 w-4" />
+              Deposits
+              {deposits.filter(d => d.status === 'pending').length > 0 && (
+                <Badge variant="destructive" className="ml-1">
+                  {deposits.filter(d => d.status === 'pending').length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="products">
+            {/* Products Section */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Products</CardTitle>
+                  <CardDescription>Manage your digital products</CardDescription>
+                </div>
+                <Button onClick={openAddDialog}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Your First Product
+                  Add Product
                 </Button>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Image</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {products.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell>
-                        {product.image_url ? (
-                          <img
-                            src={product.image_url}
-                            alt={product.title}
-                            className="w-12 h-12 object-cover rounded"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
-                            <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium">{product.title}</TableCell>
-                      <TableCell>
-                        ${product.price}
-                        {product.original_price && (
-                          <span className="text-muted-foreground line-through ml-2">
-                            ${product.original_price}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {categories.find(c => c.id === product.category)?.name || product.category}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          {product.featured && (
-                            <Badge variant="secondary">Featured</Badge>
-                          )}
-                          {product.badge && (
-                            <Badge variant="outline">{product.badge}</Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openEditDialog(product)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(product)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+              </CardHeader>
+              <CardContent>
+                {loadingProducts ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : products.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No products yet</p>
+                    <Button className="mt-4" onClick={openAddDialog}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Your First Product
+                    </Button>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Image</TableHead>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {products.map((product) => (
+                        <TableRow key={product.id}>
+                          <TableCell>
+                            {product.image_url ? (
+                              <img
+                                src={product.image_url}
+                                alt={product.title}
+                                className="w-12 h-12 object-cover rounded"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
+                                <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-medium">{product.title}</TableCell>
+                          <TableCell>
+                            ${product.price}
+                            {product.original_price && (
+                              <span className="text-muted-foreground line-through ml-2">
+                                ${product.original_price}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {categories.find(c => c.id === product.category)?.name || product.category}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              {product.featured && (
+                                <Badge variant="secondary">Featured</Badge>
+                              )}
+                              {product.badge && (
+                                <Badge variant="outline">{product.badge}</Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openEditDialog(product)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(product)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="deposits">
+            {/* Deposits Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wallet className="h-5 w-5" />
+                  Deposit Requests
+                </CardTitle>
+                <CardDescription>Manage customer top-up requests</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {depositsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : deposits.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Wallet className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No deposit requests yet</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Method</TableHead>
+                        <TableHead>Sender</TableHead>
+                        <TableHead>TrxID</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {deposits.map((deposit) => (
+                        <TableRow key={deposit.id}>
+                          <TableCell>
+                            {new Date(deposit.created_at).toLocaleDateString('bn-BD')}
+                          </TableCell>
+                          <TableCell className="font-semibold">৳{deposit.amount}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="uppercase">
+                              {deposit.payment_method}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{deposit.sender_number}</TableCell>
+                          <TableCell className="font-mono text-sm">{deposit.transaction_id}</TableCell>
+                          <TableCell>
+                            {deposit.status === 'pending' && (
+                              <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Pending
+                              </Badge>
+                            )}
+                            {deposit.status === 'approved' && (
+                              <Badge className="bg-green-600">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Approved
+                              </Badge>
+                            )}
+                            {deposit.status === 'rejected' && (
+                              <Badge variant="destructive">
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Rejected
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {deposit.status === 'pending' && (
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={async () => {
+                                    try {
+                                      await approveDeposit(deposit.id);
+                                      toast.success('Deposit approved successfully!');
+                                    } catch (e: any) {
+                                      toast.error(e.message || 'Failed to approve');
+                                    }
+                                  }}
+                                >
+                                  <Check className="h-4 w-4 mr-1" />
+                                  Approve
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={async () => {
+                                    try {
+                                      await rejectDeposit(deposit.id);
+                                      toast.success('Deposit rejected');
+                                    } catch (e: any) {
+                                      toast.error(e.message || 'Failed to reject');
+                                    }
+                                  }}
+                                >
+                                  <X className="h-4 w-4 mr-1" />
+                                  Reject
+                                </Button>
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Product Add/Edit Dialog */}
