@@ -1,16 +1,27 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Check, Download, Shield, Zap, Flame } from "lucide-react";
+import { ArrowRight, Check, Download, Shield, Zap, Flame, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProductCard } from "@/components/ProductCard";
 import { CategoryCard } from "@/components/CategoryCard";
 import ContactSection from "@/components/ContactSection";
-import { products } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
+import { products as staticProducts } from "@/data/products";
 import { categories } from "@/data/categories";
 import heroImage from "@/assets/hero-digital-services.png";
 
 const Home = () => {
+  const { products: dbProducts, loading } = useProducts();
+  
+  // Use database products if available, otherwise fallback to static
+  const products = dbProducts.length > 0 ? dbProducts : staticProducts;
+  
   const featuredProducts = products.filter(p => p.featured).slice(0, 10);
+  const simProducts = products.filter(p => p.category === "all-sim-offer").slice(0, 6);
+  const socialProducts = products.filter(p => p.category === "social-media-services").slice(0, 6);
+  const digitalProducts = products.filter(p => p.category === "digital-services").slice(0, 6);
+  const websiteProducts = products.filter(p => p.category === "website-services").slice(0, 6);
+  const cvProducts = products.filter(p => p.category === "smart-cv-make").slice(0, 6);
   
   return (
     <div className="min-h-screen">
@@ -137,133 +148,151 @@ const Home = () => {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-            {featuredProducts.slice(0, 5).map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+              {featuredProducts.slice(0, 5).map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground py-8">No featured products yet</p>
+          )}
         </div>
       </section>
 
       {/* All Sim Offer Products */}
-      <section className="py-12">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center mb-12">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-2">All Sim Offer</h2>
-              <p className="text-muted-foreground">Best mobile operator packages</p>
+      {simProducts.length > 0 && (
+        <section className="py-12">
+          <div className="container mx-auto px-4">
+            <div className="flex justify-between items-center mb-12">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-bold mb-2">All Sim Offer</h2>
+                <p className="text-muted-foreground">Best mobile operator packages</p>
+              </div>
+              <Link to="/products?category=all-sim-offer">
+                <Button variant="outline">
+                  View All
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
-            <Link to="/products?category=all-sim-offer">
-              <Button variant="outline">
-                View All
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-            {products.filter(p => p.category === "all-sim-offer").slice(0, 6).map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+              {simProducts.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Social Media Services Products */}
-      <section className="py-12 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center mb-12">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-2">Social Media Services</h2>
-              <p className="text-muted-foreground">Grow your social presence</p>
+      {socialProducts.length > 0 && (
+        <section className="py-12 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="flex justify-between items-center mb-12">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-bold mb-2">Social Media Services</h2>
+                <p className="text-muted-foreground">Grow your social presence</p>
+              </div>
+              <Link to="/products?category=social-media-services">
+                <Button variant="outline">
+                  View All
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
-            <Link to="/products?category=social-media-services">
-              <Button variant="outline">
-                View All
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-            {products.filter(p => p.category === "social-media-services").slice(0, 6).map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+              {socialProducts.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Digital Services Products */}
-      <section className="py-12">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center mb-12">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-2">Digital Services</h2>
-              <p className="text-muted-foreground">Professional digital solutions</p>
+      {digitalProducts.length > 0 && (
+        <section className="py-12">
+          <div className="container mx-auto px-4">
+            <div className="flex justify-between items-center mb-12">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-bold mb-2">Digital Services</h2>
+                <p className="text-muted-foreground">Professional digital solutions</p>
+              </div>
+              <Link to="/products?category=digital-services">
+                <Button variant="outline">
+                  View All
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
-            <Link to="/products?category=digital-services">
-              <Button variant="outline">
-                View All
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-            {products.filter(p => p.category === "digital-services").slice(0, 6).map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+              {digitalProducts.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Website Services Products */}
-      <section className="py-12 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center mb-12">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-2">Website Services</h2>
-              <p className="text-muted-foreground">Build your online presence</p>
+      {websiteProducts.length > 0 && (
+        <section className="py-12 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="flex justify-between items-center mb-12">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-bold mb-2">Website Services</h2>
+                <p className="text-muted-foreground">Build your online presence</p>
+              </div>
+              <Link to="/products?category=website-services">
+                <Button variant="outline">
+                  View All
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
-            <Link to="/products?category=website-services">
-              <Button variant="outline">
-                View All
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-            {products.filter(p => p.category === "website-services").slice(0, 6).map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+              {websiteProducts.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Smart CV Make Products */}
-      <section className="py-12">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center mb-12">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-2">Smart CV Make</h2>
-              <p className="text-muted-foreground">Professional CV templates</p>
+      {cvProducts.length > 0 && (
+        <section className="py-12">
+          <div className="container mx-auto px-4">
+            <div className="flex justify-between items-center mb-12">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-bold mb-2">Smart CV Make</h2>
+                <p className="text-muted-foreground">Professional CV templates</p>
+              </div>
+              <Link to="/products?category=smart-cv-make">
+                <Button variant="outline">
+                  View All
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
-            <Link to="/products?category=smart-cv-make">
-              <Button variant="outline">
-                View All
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-            {products.filter(p => p.category === "smart-cv-make").slice(0, 6).map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+              {cvProducts.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Features Section */}
       <section className="py-12">

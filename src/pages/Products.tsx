@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search, SlidersHorizontal, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/select";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductFilters, FilterOptions } from "@/components/ProductFilters";
-import { products, categories } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
+import { products as staticProducts, categories } from "@/data/products";
 import {
   Sheet,
   SheetContent,
@@ -21,12 +22,16 @@ import {
 } from "@/components/ui/sheet";
 
 const Products = () => {
+  const { products: dbProducts, loading } = useProducts();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("popularity");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
+  // Use database products if available, otherwise fallback to static
+  const products = dbProducts.length > 0 ? dbProducts : staticProducts;
+
   // Calculate max price from products
-  const maxPrice = Math.ceil(Math.max(...products.map((p) => p.price)) / 10) * 10;
+  const maxPrice = Math.ceil(Math.max(...products.map((p) => p.price), 100) / 10) * 10;
 
   const [filters, setFilters] = useState<FilterOptions>({
     priceRange: [0, maxPrice],
@@ -74,14 +79,26 @@ const Products = () => {
         filtered.sort((a, b) => b.rating - a.rating);
         break;
       case "newest":
-        filtered.sort((a, b) => new Date(b.lastUpdate).getTime() - new Date(a.lastUpdate).getTime());
+        filtered.sort((a, b) => {
+          const dateA = a.lastUpdate ? new Date(a.lastUpdate).getTime() : 0;
+          const dateB = b.lastUpdate ? new Date(b.lastUpdate).getTime() : 0;
+          return dateB - dateA;
+        });
         break;
       default: // popularity
         filtered.sort((a, b) => b.reviewCount - a.reviewCount);
     }
 
     return filtered;
-  }, [searchQuery, filters, sortBy]);
+  }, [products, searchQuery, filters, sortBy]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-8">
