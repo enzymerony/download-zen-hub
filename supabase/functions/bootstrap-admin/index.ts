@@ -15,57 +15,59 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { email } = await req.json();
-
-    // Validate input
-    if (!email || typeof email !== 'string') {
-      console.error('Bootstrap admin: Missing or invalid email');
+    // SECURITY: Verify authentication header exists
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('Bootstrap admin: No authorization header provided');
       return new Response(
-        JSON.stringify({ error: 'Email is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Security check: Only allow the specific admin email
-    if (email.toLowerCase() !== ALLOWED_ADMIN_EMAIL.toLowerCase()) {
-      console.error(`Bootstrap admin: Unauthorized email attempt: ${email}`);
+    // Create Supabase client with service role key for admin operations
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    
+    // Create client with user's JWT to get authenticated user
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: { Authorization: authHeader }
+      }
+    });
+
+    // Get the authenticated user
+    const { data: { user: authUser }, error: authError } = await supabaseAuth.auth.getUser();
+    
+    if (authError || !authUser) {
+      console.error('Bootstrap admin: Authentication failed:', authError?.message);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized email address' }),
+        JSON.stringify({ error: 'Invalid authentication token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Bootstrap admin: Request from authenticated user: ${authUser.email}`);
+
+    // SECURITY: User can only request admin role for themselves
+    // And only if their email matches the allowed admin email
+    if (authUser.email?.toLowerCase() !== ALLOWED_ADMIN_EMAIL.toLowerCase()) {
+      console.error(`Bootstrap admin: Unauthorized user attempt: ${authUser.email}`);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized. Only designated admin email can request admin role.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Create Supabase client with service role key
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    // Create admin client for database operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Find the user by email
-    const { data: users, error: userError } = await supabase.auth.admin.listUsers();
-    
-    if (userError) {
-      console.error('Bootstrap admin: Error listing users:', userError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to find user' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const user = users.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
-    
-    if (!user) {
-      console.error(`Bootstrap admin: User not found for email: ${email}`);
-      return new Response(
-        JSON.stringify({ error: 'User not found. Please sign up first.' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
 
     // Check if user already has admin role
     const { data: existingRole, error: roleCheckError } = await supabase
       .from('user_roles')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', authUser.id)
       .eq('role', 'admin')
       .maybeSingle();
 
@@ -78,7 +80,7 @@ Deno.serve(async (req) => {
     }
 
     if (existingRole) {
-      console.log(`Bootstrap admin: User ${email} already has admin role`);
+      console.log(`Bootstrap admin: User ${authUser.email} already has admin role`);
       return new Response(
         JSON.stringify({ message: 'User already has admin role', success: true }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -88,7 +90,7 @@ Deno.serve(async (req) => {
     // Assign admin role
     const { error: insertError } = await supabase
       .from('user_roles')
-      .insert({ user_id: user.id, role: 'admin' });
+      .insert({ user_id: authUser.id, role: 'admin' });
 
     if (insertError) {
       console.error('Bootstrap admin: Error inserting admin role:', insertError);
@@ -98,7 +100,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Bootstrap admin: Successfully assigned admin role to ${email}`);
+    console.log(`Bootstrap admin: Successfully assigned admin role to ${authUser.email}`);
     return new Response(
       JSON.stringify({ message: 'Admin role assigned successfully', success: true }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
