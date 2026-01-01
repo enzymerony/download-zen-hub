@@ -54,10 +54,10 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             {product.shortDescription}
           </p>
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold">${product.price}</span>
+            <span className="text-2xl font-bold">৳{product.price}</span>
             {product.originalPrice && (
               <span className="text-sm text-muted-foreground line-through">
-                ${product.originalPrice}
+                ৳{product.originalPrice}
               </span>
             )}
           </div>
