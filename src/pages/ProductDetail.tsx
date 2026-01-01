@@ -125,10 +125,10 @@ const ProductDetail = () => {
             <p className="text-xl text-muted-foreground mb-6">{product.shortDescription}</p>
 
             <div className="flex items-baseline gap-4 mb-6">
-              <span className="text-4xl font-bold">${product.price}</span>
+              <span className="text-4xl font-bold">৳{product.price}</span>
               {product.originalPrice && (
                 <span className="text-2xl text-muted-foreground line-through">
-                  ${product.originalPrice}
+                  ৳{product.originalPrice}
                 </span>
               )}
             </div>

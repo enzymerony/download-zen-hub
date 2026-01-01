@@ -433,10 +433,10 @@ export default function AdminDashboard() {
                           </TableCell>
                           <TableCell className="font-medium">{product.title}</TableCell>
                           <TableCell>
-                            ${product.price}
+                            ৳{product.price}
                             {product.original_price && (
                               <span className="text-muted-foreground line-through ml-2">
-                                ${product.original_price}
+                                ৳{product.original_price}
                               </span>
                             )}
                           </TableCell>

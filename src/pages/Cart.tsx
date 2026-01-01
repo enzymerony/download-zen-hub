@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -8,9 +8,16 @@ import { Input } from "@/components/ui/input";
 import { getCart, removeFromCart, updateQuantity, getCartTotal, clearCart } from "@/lib/cart";
 import { CartItem } from "@/types/product";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import { useWallet } from "@/hooks/useWallet";
+import { supabase } from "@/integrations/supabase/client";
 
 const Cart = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const { user } = useAuth();
+  const { balance, refetch } = useWallet();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const updateCart = () => setCart(getCart());
@@ -32,6 +39,47 @@ const Cart = () => {
   const handleClearCart = () => {
     clearCart();
     toast.success("Cart cleared");
+  };
+
+  const handleCheckout = async () => {
+    if (!user) {
+      toast.error("Please login to checkout");
+      navigate("/admin-login");
+      return;
+    }
+
+    if (balance < total) {
+      toast.error("Insufficient balance. Please top up first.");
+      navigate("/topup");
+      return;
+    }
+
+    setIsCheckingOut(true);
+
+    try {
+      // Process each item in cart
+      for (const item of cart) {
+        const { data, error } = await supabase.rpc('deduct_balance', {
+          p_user_id: user.id,
+          p_amount: item.product.price * item.quantity,
+          p_product_id: item.product.id,
+          p_product_title: item.product.title
+        });
+
+        if (error || !data) {
+          throw new Error(`Failed to process ${item.product.title}`);
+        }
+      }
+
+      clearCart();
+      refetch();
+      toast.success("Order completed successfully!");
+      navigate("/");
+    } catch (error: any) {
+      toast.error(error.message || "Checkout failed");
+    } finally {
+      setIsCheckingOut(false);
+    }
   };
 
   const subtotal = getCartTotal(cart);
@@ -113,7 +161,7 @@ const Cart = () => {
 
                         <div className="flex items-center gap-4">
                           <span className="text-xl font-bold">
-                            ${(item.product.price * item.quantity).toFixed(2)}
+                            ৳{(item.product.price * item.quantity).toFixed(0)}
                           </span>
                           <Button
                             variant="ghost"
@@ -144,25 +192,37 @@ const Cart = () => {
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal</span>
-                    <span className="font-medium">${subtotal.toFixed(2)}</span>
+                    <span className="font-medium">৳{subtotal.toFixed(0)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Tax (10%)</span>
-                    <span className="font-medium">${tax.toFixed(2)}</span>
+                    <span className="font-medium">৳{tax.toFixed(0)}</span>
                   </div>
 
                   <Separator />
 
                   <div className="flex justify-between text-lg font-bold">
                     <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
+                    <span>৳{total.toFixed(0)}</span>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <Input placeholder="Coupon code" />
-                  <Button className="w-full" size="lg">
-                    Proceed to Checkout
+                  <Button 
+                    className="w-full" 
+                    size="lg" 
+                    onClick={handleCheckout}
+                    disabled={isCheckingOut}
+                  >
+                    {isCheckingOut ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      "Proceed to Checkout"
+                    )}
                   </Button>
                   <p className="text-xs text-center text-muted-foreground">
                     Secure checkout • Instant download
