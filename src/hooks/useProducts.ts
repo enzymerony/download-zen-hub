@@ -2,6 +2,16 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types/product';
 
+// Import fallback images
+import facebookService from "@/assets/products/facebook-service.png";
+import instagramService from "@/assets/products/instagram-service.png";
+import tiktokService from "@/assets/products/tiktok-service.png";
+import youtubeService from "@/assets/products/youtube-service.png";
+import simOffer1 from "@/assets/products/sim-offer-1.png";
+import websiteTemplate1 from "@/assets/products/website-template-1.png";
+import cvTemplate1 from "@/assets/products/cv-template-1.png";
+import digitalService1 from "@/assets/products/digital-service-1.png";
+
 interface DBProduct {
   id: string;
   title: string;
@@ -28,30 +38,62 @@ interface DBProduct {
   updated_at: string;
 }
 
+// Get fallback image based on category and title
+const getFallbackImage = (category: string, title: string): string => {
+  const titleLower = title.toLowerCase();
+  
+  // Check for social media platforms by title
+  if (titleLower.includes('facebook')) return facebookService;
+  if (titleLower.includes('instagram')) return instagramService;
+  if (titleLower.includes('tiktok')) return tiktokService;
+  if (titleLower.includes('youtube')) return youtubeService;
+  
+  // Fallback by category
+  switch (category) {
+    case 'all-sim-offer':
+      return simOffer1;
+    case 'social-media-services':
+      return facebookService;
+    case 'website-services':
+      return websiteTemplate1;
+    case 'smart-cv-make':
+      return cvTemplate1;
+    case 'digital-services':
+      return digitalService1;
+    default:
+      return digitalService1;
+  }
+};
+
 // Convert database product to frontend Product type
-const mapDBProductToProduct = (dbProduct: DBProduct): Product => ({
-  id: dbProduct.id,
-  title: dbProduct.title,
-  description: dbProduct.description || '',
-  shortDescription: dbProduct.short_description || '',
-  price: Number(dbProduct.price),
-  originalPrice: dbProduct.original_price ? Number(dbProduct.original_price) : undefined,
-  category: dbProduct.category,
-  subcategory: dbProduct.subcategory || undefined,
-  tags: dbProduct.tags || [],
-  rating: dbProduct.rating ? Number(dbProduct.rating) : 5,
-  reviewCount: dbProduct.review_count || 0,
-  images: dbProduct.image_url ? [dbProduct.image_url] : ['/placeholder.svg'],
-  featured: dbProduct.featured || false,
-  badge: dbProduct.badge as Product['badge'],
-  whatIncluded: dbProduct.what_included || undefined,
-  features: dbProduct.features || undefined,
-  compatibility: dbProduct.compatibility || undefined,
-  version: dbProduct.version || undefined,
-  lastUpdate: dbProduct.last_update || undefined,
-  fileFormat: dbProduct.file_format || undefined,
-  requirements: dbProduct.requirements || undefined,
-});
+const mapDBProductToProduct = (dbProduct: DBProduct): Product => {
+  // Use image_url if it's a valid URL that works, otherwise use fallback
+  const fallbackImage = getFallbackImage(dbProduct.category, dbProduct.title);
+  
+  return {
+    id: dbProduct.id,
+    title: dbProduct.title,
+    description: dbProduct.description || '',
+    shortDescription: dbProduct.short_description || '',
+    price: Number(dbProduct.price),
+    originalPrice: dbProduct.original_price ? Number(dbProduct.original_price) : undefined,
+    category: dbProduct.category,
+    subcategory: dbProduct.subcategory || undefined,
+    tags: dbProduct.tags || [],
+    rating: dbProduct.rating ? Number(dbProduct.rating) : 5,
+    reviewCount: dbProduct.review_count || 0,
+    images: [fallbackImage],
+    featured: dbProduct.featured || false,
+    badge: dbProduct.badge as Product['badge'],
+    whatIncluded: dbProduct.what_included || undefined,
+    features: dbProduct.features || undefined,
+    compatibility: dbProduct.compatibility || undefined,
+    version: dbProduct.version || undefined,
+    lastUpdate: dbProduct.last_update || undefined,
+    fileFormat: dbProduct.file_format || undefined,
+    requirements: dbProduct.requirements || undefined,
+  };
+};
 
 export function useProducts() {
   const [products, setProducts] = useState<Product[]>([]);
