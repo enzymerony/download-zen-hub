@@ -1,13 +1,13 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Check, Download, Shield, ShoppingCart, Star, Facebook, Twitter, Linkedin, Share2, Send } from "lucide-react";
+import { ArrowLeft, Check, Download, Shield, ShoppingCart, Star, Facebook, Twitter, Linkedin, Share2, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Textarea } from "@/components/ui/textarea";
-import { products } from "@/data/products";
+import { useProduct, useProducts } from "@/hooks/useProducts";
+import { products as staticProducts } from "@/data/products";
 import { addToCart } from "@/lib/cart";
 import { toast } from "sonner";
 import { ProductCard } from "@/components/ProductCard";
@@ -15,9 +15,25 @@ import { useState } from "react";
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const product = products.find((p) => p.id === id);
+  const { product: dbProduct, loading, error } = useProduct(id || '');
+  const { products: allDbProducts } = useProducts();
   const [reviewText, setReviewText] = useState("");
   const [rating, setRating] = useState(5);
+
+  // Try database first, then fallback to static
+  const staticProduct = staticProducts.find((p) => p.id === id);
+  const product = dbProduct || staticProduct;
+  
+  // For related products, use DB products if available
+  const allProducts = allDbProducts.length > 0 ? allDbProducts : staticProducts;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -32,7 +48,7 @@ const ProductDetail = () => {
     );
   }
 
-  const relatedProducts = products
+  const relatedProducts = allProducts
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 3);
 
@@ -139,16 +155,20 @@ const ProductDetail = () => {
             <Separator className="my-6" />
 
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Version</span>
-                <span className="font-medium">{product.version}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Last Update</span>
-                <span className="font-medium">
-                  {new Date(product.lastUpdate).toLocaleDateString()}
-                </span>
-              </div>
+              {product.version && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Version</span>
+                  <span className="font-medium">{product.version}</span>
+                </div>
+              )}
+              {product.lastUpdate && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Last Update</span>
+                  <span className="font-medium">
+                    {new Date(product.lastUpdate).toLocaleDateString()}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Category</span>
                 <span className="font-medium">{product.category}</span>
