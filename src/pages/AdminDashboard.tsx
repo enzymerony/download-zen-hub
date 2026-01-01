@@ -544,20 +544,20 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="badge">Badge</Label>
-                <Select
-                  value={formData.badge}
-                  onValueChange={(value) => setFormData({ ...formData, badge: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="No badge" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">None</SelectItem>
-                    <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="bestseller">Bestseller</SelectItem>
-                    <SelectItem value="sale">Sale</SelectItem>
-                  </SelectContent>
-                </Select>
+              <Select
+                value={formData.badge || "none"}
+                onValueChange={(value) => setFormData({ ...formData, badge: value === "none" ? "" : value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="No badge" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="bestseller">Bestseller</SelectItem>
+                  <SelectItem value="sale">Sale</SelectItem>
+                </SelectContent>
+              </Select>
               </div>
               <div className="flex items-center gap-2 pt-8">
                 <Switch
