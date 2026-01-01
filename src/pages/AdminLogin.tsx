@@ -21,14 +21,15 @@ export default function AdminLogin() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp, user, isAdmin, loading } = useAuth();
+  const { signIn, signUp, user, isAdmin, loading, adminLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user && isAdmin) {
+    // Wait for both auth and admin check to complete before redirecting
+    if (!loading && !adminLoading && user && isAdmin) {
       navigate('/admin');
     }
-  }, [user, isAdmin, loading, navigate]);
+  }, [user, isAdmin, loading, adminLoading, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,10 +80,11 @@ export default function AdminLogin() {
     setIsLoading(false);
   };
 
-  if (loading) {
+  if (loading || adminLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-hero gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Checking access...</p>
       </div>
     );
   }

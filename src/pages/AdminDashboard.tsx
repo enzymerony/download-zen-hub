@@ -82,7 +82,7 @@ const initialFormData: ProductFormData = {
 };
 
 export default function AdminDashboard() {
-  const { user, isAdmin, loading, signOut } = useAuth();
+  const { user, isAdmin, loading, adminLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [products, setProducts] = useState<DBProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -95,10 +95,11 @@ export default function AdminDashboard() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!loading && (!user || !isAdmin)) {
+    // Wait for both auth and admin check to complete
+    if (!loading && !adminLoading && (!user || !isAdmin)) {
       navigate('/admin/login');
     }
-  }, [user, isAdmin, loading, navigate]);
+  }, [user, isAdmin, loading, adminLoading, navigate]);
 
   useEffect(() => {
     if (user && isAdmin) {
@@ -278,10 +279,12 @@ export default function AdminDashboard() {
     navigate('/');
   };
 
-  if (loading) {
+  // Show loading while auth or admin check is in progress
+  if (loading || adminLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Checking admin access...</p>
       </div>
     );
   }

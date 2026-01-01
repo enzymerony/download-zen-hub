@@ -13,6 +13,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  adminLoading: boolean;
   isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -25,6 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [adminLoading, setAdminLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
   const checkAdminRole = async (userId: string) => {
@@ -55,11 +57,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         // Defer admin check to avoid deadlock
         if (session?.user) {
+          setAdminLoading(true);
           setTimeout(() => {
-            checkAdminRole(session.user.id).then(setIsAdmin);
+            checkAdminRole(session.user.id).then((result) => {
+              setIsAdmin(result);
+              setAdminLoading(false);
+            });
           }, 0);
         } else {
           setIsAdmin(false);
+          setAdminLoading(false);
         }
       }
     );
@@ -71,7 +78,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       
       if (session?.user) {
-        checkAdminRole(session.user.id).then(setIsAdmin);
+        setAdminLoading(true);
+        checkAdminRole(session.user.id).then((result) => {
+          setIsAdmin(result);
+          setAdminLoading(false);
+        });
+      } else {
+        setAdminLoading(false);
       }
     });
 
@@ -99,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, adminLoading, isAdmin, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );
