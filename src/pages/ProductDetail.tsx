@@ -11,6 +11,7 @@ import { products as staticProducts } from "@/data/products";
 import { addToCart } from "@/lib/cart";
 import { toast } from "sonner";
 import { ProductCard } from "@/components/ProductCard";
+import { BuyNowButton } from "@/components/BuyNowButton";
 import { useState } from "react";
 
 const ProductDetail = () => {
@@ -132,10 +133,18 @@ const ProductDetail = () => {
               )}
             </div>
 
-            <Button size="lg" className="w-full mb-4" onClick={handleAddToCart}>
-              <ShoppingCart className="h-5 w-5 mr-2" />
-              Add to Cart
-            </Button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              <BuyNowButton 
+                productId={product.id} 
+                productTitle={product.title} 
+                price={product.price} 
+                className="w-full"
+              />
+              <Button size="lg" variant="outline" className="w-full" onClick={handleAddToCart}>
+                <ShoppingCart className="h-5 w-5 mr-2" />
+                Add to Cart
+              </Button>
+            </div>
 
             <div className="space-y-3 mb-6">
               <div className="flex items-center gap-2 text-sm">

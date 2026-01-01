@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { getCart, getCartCount } from "@/lib/cart";
 import { OrderTrackDialog } from "@/components/OrderTrackDialog";
+import { WalletBadge } from "@/components/WalletBadge";
 import { categories } from "@/data/categories";
 import {
   NavigationMenu,
@@ -113,6 +114,8 @@ export const Header = () => {
                 className="w-64"
               />
             </div>
+            
+            <WalletBadge />
             
             <Button variant="ghost" size="icon" className="md:hidden">
               <Search className="h-5 w-5" />
