@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ShoppingCart, Search, Menu, X, ChevronDown, User, LogOut, Package } from "lucide-react";
+import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -49,8 +50,8 @@ export const Header = () => {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <a href="/" className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-primary" />
-            <span className="text-xl font-bold">Digital Drive Store</span>
+            <img src={logo} alt="Digital Drive Store" className="h-10 w-auto" />
+            <span className="text-xl font-bold hidden sm:inline">Digital Drive Store</span>
           </a>
 
           {/* Desktop Navigation */}
