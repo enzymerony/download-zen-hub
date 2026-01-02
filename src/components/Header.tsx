@@ -50,7 +50,7 @@ export const Header = () => {
           {/* Logo */}
           <a href="/" className="flex items-center space-x-2">
             <div className="h-8 w-8 rounded-lg bg-gradient-primary" />
-            <span className="text-xl font-bold">10 ANA Digital</span>
+            <span className="text-xl font-bold">Digital Drive Store</span>
           </a>
 
           {/* Desktop Navigation */}
