@@ -49,6 +49,7 @@ interface ProductFormData {
   price: string;
   original_price: string;
   category: string;
+  subcategory: string;
   featured: boolean;
   badge: string;
 }
@@ -60,6 +61,7 @@ const initialFormData: ProductFormData = {
   price: '',
   original_price: '',
   category: '',
+  subcategory: '',
   featured: false,
   badge: ''
 };
@@ -145,6 +147,7 @@ export default function AdminProducts() {
       price: product.price.toString(),
       original_price: product.original_price?.toString() || '',
       category: product.category,
+      subcategory: product.subcategory || '',
       featured: product.featured || false,
       badge: product.badge || ''
     });
@@ -190,6 +193,7 @@ export default function AdminProducts() {
       price: parseFloat(formData.price),
       original_price: formData.original_price ? parseFloat(formData.original_price) : null,
       category: formData.category,
+      subcategory: formData.subcategory || null,
       featured: formData.featured,
       badge: formData.badge || null,
       image_url: imageUrl
@@ -415,23 +419,46 @@ export default function AdminProducts() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="category">Category *</Label>
-              <Select
-                value={formData.category}
-                onValueChange={(value) => setFormData({ ...formData, category: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="category">Category *</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => setFormData({ ...formData, category: value, subcategory: '' })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="subcategory">Subcategory</Label>
+                <Select
+                  value={formData.subcategory || "none"}
+                  onValueChange={(value) => setFormData({ ...formData, subcategory: value === "none" ? "" : value })}
+                  disabled={!formData.category || !categories.find(c => c.id === formData.category)?.subcategories}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select subcategory" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {categories.find(c => c.id === formData.category)?.subcategories?.map((sub) => (
+                      <SelectItem key={sub} value={sub}>
+                        {sub}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2">

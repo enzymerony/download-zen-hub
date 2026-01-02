@@ -63,14 +63,21 @@ export const CategoryCard = ({ category }: CategoryCardProps) => {
           
           {isExpanded && (
             <div className="mt-4 pt-4 border-t animate-fade-in">
-              <div className="space-y-2">
+              <div className="flex flex-wrap gap-2 justify-center">
                 {category.subcategories.map((sub, index) => (
-                  <div
+                  <Link
                     key={index}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors py-1 px-2 rounded hover:bg-muted/50"
+                    to={`/products?category=${category.id}&subcategory=${encodeURIComponent(sub)}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold 
+                      bg-gradient-to-r from-primary/10 to-primary/20 
+                      text-primary border border-primary/30
+                      hover:from-primary hover:to-primary hover:text-primary-foreground
+                      transition-all duration-300 hover:scale-105 hover:shadow-lg
+                      cursor-pointer"
                   >
                     {sub}
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>
