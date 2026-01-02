@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Plus, Pencil, Trash2, Package, AlertCircle, CheckCircle, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Package, AlertCircle, CheckCircle, Image as ImageIcon, Upload, Link as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { categories } from '@/data/categories';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,6 +38,8 @@ interface DBProduct {
   last_update: string | null;
   file_format: string[] | null;
   requirements: string[] | null;
+  file_url: string | null;
+  external_link: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -52,6 +54,7 @@ interface ProductFormData {
   subcategory: string;
   featured: boolean;
   badge: string;
+  external_link: string;
 }
 
 const initialFormData: ProductFormData = {
@@ -63,7 +66,8 @@ const initialFormData: ProductFormData = {
   category: '',
   subcategory: '',
   featured: false,
-  badge: ''
+  badge: '',
+  external_link: ''
 };
 
 export default function AdminProducts() {
@@ -75,6 +79,8 @@ export default function AdminProducts() {
   const [formData, setFormData] = useState<ProductFormData>(initialFormData);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [productFile, setProductFile] = useState<File | null>(null);
+  const [existingFileUrl, setExistingFileUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -129,11 +135,44 @@ export default function AdminProducts() {
     return data.publicUrl;
   };
 
+  const uploadProductFile = async (file: File): Promise<string | null> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `products/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from('product-images')
+      .upload(fileName, file);
+
+    if (uploadError) {
+      console.error('File upload error:', uploadError);
+      return null;
+    }
+
+    const { data } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(fileName);
+
+    return data.publicUrl;
+  };
+
+  const handleProductFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 50 * 1024 * 1024) {
+        setError('File size must be less than 50MB');
+        return;
+      }
+      setProductFile(file);
+    }
+  };
+
   const openAddDialog = () => {
     setEditingProduct(null);
     setFormData(initialFormData);
     setImageFile(null);
     setImagePreview(null);
+    setProductFile(null);
+    setExistingFileUrl(null);
     setError('');
     setDialogOpen(true);
   };
@@ -149,10 +188,13 @@ export default function AdminProducts() {
       category: product.category,
       subcategory: product.subcategory || '',
       featured: product.featured || false,
-      badge: product.badge || ''
+      badge: product.badge || '',
+      external_link: product.external_link || ''
     });
     setImagePreview(product.image_url);
     setImageFile(null);
+    setProductFile(null);
+    setExistingFileUrl(product.file_url);
     setError('');
     setDialogOpen(true);
   };
@@ -186,6 +228,16 @@ export default function AdminProducts() {
       }
     }
 
+    let fileUrl = existingFileUrl;
+    if (productFile) {
+      fileUrl = await uploadProductFile(productFile);
+      if (!fileUrl) {
+        setError('Failed to upload product file');
+        setSaving(false);
+        return;
+      }
+    }
+
     const productData = {
       title: formData.title.trim(),
       description: formData.description.trim() || null,
@@ -196,7 +248,9 @@ export default function AdminProducts() {
       subcategory: formData.subcategory || null,
       featured: formData.featured,
       badge: formData.badge || null,
-      image_url: imageUrl
+      image_url: imageUrl,
+      file_url: fileUrl,
+      external_link: formData.external_link.trim() || null
     };
 
     if (editingProduct) {
@@ -535,6 +589,64 @@ export default function AdminProducts() {
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Max 5MB. JPG, PNG, WebP
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Digital Product File Section */}
+            <div className="border-t pt-4 mt-4">
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <Upload className="h-5 w-5" />
+                Digital Product Delivery
+              </h3>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="product_file">Upload Product File (PDF, ZIP, etc.)</Label>
+                  <div className="flex items-center gap-4">
+                    <Input
+                      id="product_file"
+                      type="file"
+                      accept=".pdf,.zip,.rar,.doc,.docx,.psd,.ai,.eps,.png,.jpg,.jpeg"
+                      onChange={handleProductFileChange}
+                      className="max-w-[300px]"
+                    />
+                    {(productFile || existingFileUrl) && (
+                      <Badge variant="secondary" className="gap-1">
+                        <CheckCircle className="h-3 w-3" />
+                        {productFile ? productFile.name : 'File uploaded'}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Max 50MB. PDF, ZIP, RAR, DOC, DOCX, PSD, AI, EPS, Images
+                  </p>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">OR</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="external_link" className="flex items-center gap-2">
+                    <LinkIcon className="h-4 w-4" />
+                    External Link (Google Drive, Mega, etc.)
+                  </Label>
+                  <Input
+                    id="external_link"
+                    type="url"
+                    value={formData.external_link}
+                    onChange={(e) => setFormData({ ...formData, external_link: e.target.value })}
+                    placeholder="https://drive.google.com/... or https://mega.nz/..."
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Provide an external download link if not uploading a file
                   </p>
                 </div>
               </div>

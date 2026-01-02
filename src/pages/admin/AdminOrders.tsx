@@ -3,8 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, ShoppingCart, Search } from 'lucide-react';
+import { Loader2, ShoppingCart, Search, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface OrderWithUser {
@@ -31,7 +32,7 @@ export default function AdminOrders() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      // Fetch orders
+      // Fetch orders - pending first, then by date
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select('*')
@@ -44,8 +45,15 @@ export default function AdminOrders() {
         return;
       }
 
+      // Sort to show pending orders first
+      const sortedOrders = ordersData.sort((a, b) => {
+        if (a.status === 'pending' && b.status !== 'pending') return -1;
+        if (a.status !== 'pending' && b.status === 'pending') return 1;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+
       // Get unique user IDs
-      const userIds = [...new Set(ordersData.map(o => o.user_id))];
+      const userIds = [...new Set(sortedOrders.map(o => o.user_id))];
 
       // Fetch profiles
       const { data: profiles } = await supabase
@@ -55,7 +63,7 @@ export default function AdminOrders() {
 
       const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
 
-      const enrichedOrders = ordersData.map(order => ({
+      const enrichedOrders = sortedOrders.map(order => ({
         ...order,
         username: profileMap.get(order.user_id)?.username,
         email: profileMap.get(order.user_id)?.email
@@ -67,6 +75,24 @@ export default function AdminOrders() {
       toast.error('Failed to load orders');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const approveOrder = async (orderId: string) => {
+    try {
+      const { data, error } = await supabase.rpc('approve_order', { p_order_id: orderId });
+      
+      if (error) throw error;
+      
+      if (data) {
+        toast.success('Order approved successfully');
+        fetchOrders();
+      } else {
+        toast.error('Failed to approve order');
+      }
+    } catch (error) {
+      console.error('Error approving order:', error);
+      toast.error('Failed to approve order');
     }
   };
 
@@ -144,11 +170,12 @@ export default function AdminOrders() {
                     <TableHead>Product</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredOrders.map((order) => (
-                    <TableRow key={order.id}>
+                    <TableRow key={order.id} className={order.status === 'pending' ? 'bg-yellow-50 dark:bg-yellow-900/10' : ''}>
                       <TableCell>
                         {new Date(order.created_at).toLocaleDateString('bn-BD')}
                         <span className="block text-xs text-muted-foreground">
@@ -168,6 +195,18 @@ export default function AdminOrders() {
                       </TableCell>
                       <TableCell className="font-semibold">৳{order.amount.toLocaleString()}</TableCell>
                       <TableCell>{getStatusBadge(order.status)}</TableCell>
+                      <TableCell className="text-right">
+                        {order.status === 'pending' && (
+                          <Button
+                            size="sm"
+                            onClick={() => approveOrder(order.id)}
+                            className="gap-1"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                            Approve
+                          </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
