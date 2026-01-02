@@ -44,7 +44,7 @@ const Cart = () => {
   const handleCheckout = async () => {
     if (!user) {
       toast.error("Please login to checkout");
-      navigate("/admin/login");
+      navigate("/auth");
       return;
     }
 
