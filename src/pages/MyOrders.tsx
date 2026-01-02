@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Package, Download, ShoppingBag, Loader2 } from "lucide-react";
+import { ArrowLeft, Package, Download, ShoppingBag, Loader2, ExternalLink, Clock } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 interface Order {
   id: string;
@@ -18,10 +19,16 @@ interface Order {
   created_at: string;
 }
 
+interface ProductFile {
+  file_url: string | null;
+  external_link: string | null;
+}
+
 export default function MyOrders() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [productFiles, setProductFiles] = useState<Map<string, ProductFile>>(new Map());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,6 +51,24 @@ export default function MyOrders() {
         console.error("Error fetching orders:", error);
       } else {
         setOrders(data || []);
+        
+        // Fetch product files for completed orders
+        const completedOrders = (data || []).filter(o => o.status === 'completed' && o.product_id);
+        if (completedOrders.length > 0) {
+          const productIds = completedOrders.map(o => o.product_id).filter(Boolean) as string[];
+          const { data: products } = await supabase
+            .from('products')
+            .select('id, file_url, external_link')
+            .in('id', productIds);
+          
+          if (products) {
+            const fileMap = new Map<string, ProductFile>();
+            products.forEach(p => {
+              fileMap.set(p.id, { file_url: p.file_url, external_link: p.external_link });
+            });
+            setProductFiles(fileMap);
+          }
+        }
       }
       setLoading(false);
     };
@@ -53,12 +78,33 @@ export default function MyOrders() {
     }
   }, [user]);
 
+  const handleDownload = (order: Order) => {
+    if (!order.product_id) {
+      toast.error('Product not found');
+      return;
+    }
+
+    const files = productFiles.get(order.product_id);
+    if (!files) {
+      toast.error('Download not available');
+      return;
+    }
+
+    if (files.external_link) {
+      window.open(files.external_link, '_blank');
+    } else if (files.file_url) {
+      window.open(files.file_url, '_blank');
+    } else {
+      toast.error('No download available for this product');
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "completed":
         return <Badge className="bg-green-500">সম্পন্ন</Badge>;
       case "pending":
-        return <Badge variant="secondary">পেন্ডিং</Badge>;
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300">পেন্ডিং</Badge>;
       case "cancelled":
         return <Badge variant="destructive">বাতিল</Badge>;
       default:
@@ -115,7 +161,7 @@ export default function MyOrders() {
       ) : (
         <div className="space-y-4">
           {orders.map((order) => (
-            <Card key={order.id} className="hover:shadow-md transition-shadow">
+            <Card key={order.id} className={`hover:shadow-md transition-shadow ${order.status === 'pending' ? 'border-yellow-300 bg-yellow-50/50 dark:bg-yellow-900/10' : ''}`}>
               <CardContent className="p-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex-1">
@@ -127,6 +173,12 @@ export default function MyOrders() {
                       <p>অর্ডার আইডি: {order.id.slice(0, 8)}...</p>
                       <p>তারিখ: {format(new Date(order.created_at), "dd/MM/yyyy hh:mm a")}</p>
                     </div>
+                    {order.status === 'pending' && (
+                      <div className="mt-2 flex items-center gap-2 text-yellow-700 dark:text-yellow-400 text-sm">
+                        <Clock className="h-4 w-4" />
+                        <span>এডমিন অনুমোদনের অপেক্ষায়</span>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex items-center gap-4">
@@ -134,10 +186,24 @@ export default function MyOrders() {
                       <p className="text-2xl font-bold text-primary">৳{order.amount}</p>
                     </div>
                     
-                    {order.status === "completed" && (
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <Download className="h-4 w-4" />
-                        ডাউনলোড
+                    {order.status === "completed" && order.product_id && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="gap-2"
+                        onClick={() => handleDownload(order)}
+                      >
+                        {productFiles.get(order.product_id)?.external_link ? (
+                          <>
+                            <ExternalLink className="h-4 w-4" />
+                            লিংক খুলুন
+                          </>
+                        ) : (
+                          <>
+                            <Download className="h-4 w-4" />
+                            ডাউনলোড
+                          </>
+                        )}
                       </Button>
                     )}
                   </div>

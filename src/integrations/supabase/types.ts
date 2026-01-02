@@ -99,9 +99,11 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          external_link: string | null
           featured: boolean | null
           features: string[] | null
           file_format: string[] | null
+          file_url: string | null
           id: string
           image_url: string | null
           last_update: string | null
@@ -125,9 +127,11 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          external_link?: string | null
           featured?: boolean | null
           features?: string[] | null
           file_format?: string[] | null
+          file_url?: string | null
           id?: string
           image_url?: string | null
           last_update?: string | null
@@ -151,9 +155,11 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          external_link?: string | null
           featured?: boolean | null
           features?: string[] | null
           file_format?: string[] | null
+          file_url?: string | null
           id?: string
           image_url?: string | null
           last_update?: string | null
@@ -253,6 +259,7 @@ export type Database = {
     }
     Functions: {
       approve_deposit: { Args: { deposit_id: string }; Returns: boolean }
+      approve_order: { Args: { p_order_id: string }; Returns: boolean }
       deduct_balance: {
         Args: {
           p_amount: number
