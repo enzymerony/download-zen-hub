@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { ShoppingCart, Search, Menu, X, ChevronDown } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ShoppingCart, Search, Menu, X, ChevronDown, User, LogOut, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { getCart, getCartCount } from "@/lib/cart";
 import { OrderTrackDialog } from "@/components/OrderTrackDialog";
 import { WalletBadge } from "@/components/WalletBadge";
 import { categories } from "@/data/categories";
+import { useAuth } from "@/hooks/useAuth";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -16,11 +17,20 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const Header = () => {
   const [cartCount, setCartCount] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isOrderTrackOpen, setIsOrderTrackOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const updateCartCount = () => {
@@ -106,7 +116,7 @@ export const Header = () => {
           </nav>
 
           {/* Search & Actions */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
             <div className="hidden md:flex items-center">
               <Input
                 type="search"
@@ -134,6 +144,46 @@ export const Header = () => {
                 )}
               </Button>
             </Link>
+
+            {/* User Menu */}
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <User className="h-4 w-4" />
+                    <span className="hidden md:inline">অ্যাকাউন্ট</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem asChild>
+                    <Link to="/my-orders" className="flex items-center gap-2 cursor-pointer">
+                      <Package className="h-4 w-4" />
+                      আমার অর্ডার
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/topup" className="flex items-center gap-2 cursor-pointer">
+                      <WalletBadge />
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => signOut()} 
+                    className="flex items-center gap-2 cursor-pointer text-destructive"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    লগ আউট
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link to="/auth">
+                <Button size="sm" className="gap-2">
+                  <User className="h-4 w-4" />
+                  <span className="hidden md:inline">লগইন</span>
+                </Button>
+              </Link>
+            )}
 
             <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
               {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
