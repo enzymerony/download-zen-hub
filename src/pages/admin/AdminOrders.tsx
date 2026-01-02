@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, ShoppingCart, Search, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -24,6 +25,7 @@ export default function AdminOrders() {
   const [orders, setOrders] = useState<OrderWithUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('all');
 
   useEffect(() => {
     fetchOrders();
@@ -32,7 +34,6 @@ export default function AdminOrders() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      // Fetch orders - pending first, then by date
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select('*')
@@ -98,12 +99,22 @@ export default function AdminOrders() {
 
   const filteredOrders = orders.filter(order => {
     const query = searchQuery.toLowerCase();
-    return (
+    const matchesSearch = (
       order.product_title.toLowerCase().includes(query) ||
       order.username?.toLowerCase().includes(query) ||
       order.email?.toLowerCase().includes(query)
     );
+    
+    const matchesStatus = 
+      statusFilter === 'all' ? true :
+      statusFilter === 'pending' ? order.status === 'pending' :
+      statusFilter === 'completed' ? order.status === 'completed' : true;
+    
+    return matchesSearch && matchesStatus;
   });
+
+  const pendingCount = orders.filter(o => o.status === 'pending').length;
+  const completedCount = orders.filter(o => o.status === 'completed').length;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -127,25 +138,45 @@ export default function AdminOrders() {
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                All Orders
-              </CardTitle>
-              <CardDescription>
-                {orders.length} total orders
-              </CardDescription>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5" />
+                  All Orders
+                </CardTitle>
+                <CardDescription>
+                  {orders.length} total orders
+                </CardDescription>
+              </div>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search orders..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search orders..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+            
+            {/* Status Filter Tabs */}
+            <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as 'all' | 'pending' | 'completed')}>
+              <TabsList className="grid w-full grid-cols-3 max-w-md">
+                <TabsTrigger value="all" className="gap-2">
+                  All
+                  <Badge variant="secondary" className="ml-1">{orders.length}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="pending" className="gap-2">
+                  Pending
+                  <Badge variant="outline" className="ml-1 text-yellow-600 border-yellow-600">{pendingCount}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="completed" className="gap-2">
+                  Completed
+                  <Badge className="ml-1 bg-green-600">{completedCount}</Badge>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
         </CardHeader>
         <CardContent>
@@ -157,7 +188,8 @@ export default function AdminOrders() {
             <div className="text-center py-12">
               <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
-                {searchQuery ? 'No orders found matching your search' : 'No orders yet'}
+                {searchQuery ? 'No orders found matching your search' : 
+                 statusFilter !== 'all' ? `No ${statusFilter} orders` : 'No orders yet'}
               </p>
             </div>
           ) : (
