@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Search, SlidersHorizontal, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,10 +23,12 @@ import {
 } from "@/components/ui/sheet";
 
 const Products = () => {
+  const [searchParams] = useSearchParams();
   const { products: dbProducts, loading } = useProducts();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("popularity");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [subcategoryFilter, setSubcategoryFilter] = useState<string | null>(null);
 
   // Use database products if available, otherwise fallback to static
   const products = dbProducts.length > 0 ? dbProducts : staticProducts;
@@ -38,6 +41,21 @@ const Products = () => {
     minRating: 0,
     selectedCategory: "all",
   });
+
+  // Handle URL params for category and subcategory filtering
+  useEffect(() => {
+    const categoryParam = searchParams.get("category");
+    const subcategoryParam = searchParams.get("subcategory");
+
+    if (categoryParam) {
+      setFilters(prev => ({ ...prev, selectedCategory: categoryParam }));
+    }
+    if (subcategoryParam) {
+      setSubcategoryFilter(subcategoryParam);
+    } else {
+      setSubcategoryFilter(null);
+    }
+  }, [searchParams]);
 
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
@@ -55,6 +73,13 @@ const Products = () => {
     // Filter by category
     if (filters.selectedCategory !== "all") {
       filtered = filtered.filter((p) => p.category.toLowerCase().replace(/\s+/g, "-") === filters.selectedCategory);
+    }
+
+    // Filter by subcategory
+    if (subcategoryFilter) {
+      filtered = filtered.filter((p) => 
+        p.subcategory?.toLowerCase() === subcategoryFilter.toLowerCase()
+      );
     }
 
     // Filter by price range
@@ -90,7 +115,7 @@ const Products = () => {
     }
 
     return filtered;
-  }, [products, searchQuery, filters, sortBy]);
+  }, [products, searchQuery, filters, sortBy, subcategoryFilter]);
 
   if (loading) {
     return (
@@ -105,10 +130,28 @@ const Products = () => {
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">All Products</h1>
+          <h1 className="text-4xl font-bold mb-2">
+            {subcategoryFilter ? subcategoryFilter : "All Products"}
+          </h1>
           <p className="text-muted-foreground text-lg">
-            Discover our complete collection of digital products
+            {subcategoryFilter 
+              ? `Showing all ${subcategoryFilter} products`
+              : "Discover our complete collection of digital products"
+            }
           </p>
+          {subcategoryFilter && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-3"
+              onClick={() => {
+                setSubcategoryFilter(null);
+                window.history.pushState({}, '', '/products');
+              }}
+            >
+              Clear Subcategory Filter
+            </Button>
+          )}
         </div>
 
         <div className="flex gap-6">
