@@ -83,8 +83,7 @@ const Cart = () => {
   };
 
   const subtotal = getCartTotal(cart);
-  const tax = subtotal * 0.1; // 10% tax for example
-  const total = subtotal + tax;
+  const total = subtotal;
 
   if (cart.length === 0) {
     return (
@@ -190,17 +189,6 @@ const Cart = () => {
                 <h2 className="text-2xl font-bold mb-6">Order Summary</h2>
 
                 <div className="space-y-4 mb-6">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span className="font-medium">৳{subtotal.toFixed(0)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Tax (10%)</span>
-                    <span className="font-medium">৳{tax.toFixed(0)}</span>
-                  </div>
-
-                  <Separator />
-
                   <div className="flex justify-between text-lg font-bold">
                     <span>Total</span>
                     <span>৳{total.toFixed(0)}</span>
