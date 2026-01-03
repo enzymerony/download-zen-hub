@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, createContext, useContext, ReactNode, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -8,6 +8,15 @@ import { supabase } from '@/integrations/supabase/client';
  * in the database. The frontend cannot be trusted for authorization decisions.
  * RLS policies using has_role() function are the true security boundary.
  */
+
+// Cache duration for admin role check (15 minutes)
+const ADMIN_CACHE_DURATION = 15 * 60 * 1000;
+
+interface AdminCache {
+  userId: string;
+  isAdmin: boolean;
+  timestamp: number;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -22,14 +31,55 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Persist admin cache in sessionStorage to survive tab switches
+const getAdminCache = (): AdminCache | null => {
+  try {
+    const cached = sessionStorage.getItem('admin_role_cache');
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch {
+    // Ignore errors
+  }
+  return null;
+};
+
+const setAdminCache = (cache: AdminCache) => {
+  try {
+    sessionStorage.setItem('admin_role_cache', JSON.stringify(cache));
+  } catch {
+    // Ignore errors
+  }
+};
+
+const clearAdminCache = () => {
+  try {
+    sessionStorage.removeItem('admin_role_cache');
+  } catch {
+    // Ignore errors
+  }
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [adminLoading, setAdminLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const initialCheckDone = useRef(false);
 
-  const checkAdminRole = async (userId: string) => {
+  const checkAdminRole = async (userId: string, forceRefresh = false): Promise<boolean> => {
+    // Check cache first (unless force refresh)
+    if (!forceRefresh) {
+      const cached = getAdminCache();
+      if (cached && cached.userId === userId) {
+        const isExpired = Date.now() - cached.timestamp > ADMIN_CACHE_DURATION;
+        if (!isExpired) {
+          return cached.isAdmin;
+        }
+      }
+    }
+
     const { data, error } = await supabase
       .from('user_roles')
       .select('role')
@@ -38,13 +88,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .maybeSingle();
     
     if (error) {
-      // Only log in development to prevent information leakage
       if (import.meta.env.DEV) {
         console.error('Error checking admin role:', error);
       }
       return false;
     }
-    return !!data;
+    
+    const result = !!data;
+    
+    // Cache the result
+    setAdminCache({
+      userId,
+      isAdmin: result,
+      timestamp: Date.now()
+    });
+    
+    return result;
   };
 
   useEffect(() => {
@@ -55,38 +114,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Defer admin check to avoid deadlock
-        if (session?.user) {
-          setAdminLoading(true);
-          setTimeout(() => {
-            checkAdminRole(session.user.id).then((result) => {
-              setIsAdmin(result);
+        // Only check admin role on actual auth events, not on every state change
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (session?.user) {
+            // Check if we have a valid cache
+            const cached = getAdminCache();
+            const hasValidCache = cached && 
+              cached.userId === session.user.id && 
+              Date.now() - cached.timestamp < ADMIN_CACHE_DURATION;
+            
+            if (hasValidCache) {
+              setIsAdmin(cached.isAdmin);
               setAdminLoading(false);
-            });
-          }, 0);
-        } else {
+            } else {
+              setAdminLoading(true);
+              setTimeout(() => {
+                checkAdminRole(session.user.id).then((result) => {
+                  setIsAdmin(result);
+                  setAdminLoading(false);
+                });
+              }, 0);
+            }
+          }
+        } else if (event === 'SIGNED_OUT') {
           setIsAdmin(false);
           setAdminLoading(false);
+          clearAdminCache();
         }
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+    // THEN check for existing session (only once)
+    if (!initialCheckDone.current) {
+      initialCheckDone.current = true;
       
-      if (session?.user) {
-        setAdminLoading(true);
-        checkAdminRole(session.user.id).then((result) => {
-          setIsAdmin(result);
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+        
+        if (session?.user) {
+          // Check if we have a valid cache
+          const cached = getAdminCache();
+          const hasValidCache = cached && 
+            cached.userId === session.user.id && 
+            Date.now() - cached.timestamp < ADMIN_CACHE_DURATION;
+          
+          if (hasValidCache) {
+            setIsAdmin(cached.isAdmin);
+            setAdminLoading(false);
+          } else {
+            setAdminLoading(true);
+            checkAdminRole(session.user.id).then((result) => {
+              setIsAdmin(result);
+              setAdminLoading(false);
+            });
+          }
+        } else {
           setAdminLoading(false);
-        });
-      } else {
-        setAdminLoading(false);
-      }
-    });
+        }
+      });
+    }
 
     return () => subscription.unsubscribe();
   }, []);
