@@ -15,6 +15,8 @@ import TopUp from "./pages/TopUp";
 import Auth from "./pages/Auth";
 import MyOrders from "./pages/MyOrders";
 import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Careers from "./pages/Careers";
 import AdminLogin from "./pages/AdminLogin";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -42,6 +44,8 @@ const App = () => (
               <Route path="/topup" element={<TopUp />} />
               <Route path="/my-orders" element={<MyOrders />} />
               <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/careers" element={<Careers />} />
             </Route>
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin/login" element={<AdminLogin />} />
