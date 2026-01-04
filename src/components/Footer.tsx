@@ -87,7 +87,7 @@ export const Footer = () => {
         </div>
 
         <div className="mt-12 pt-8 border-t text-center text-sm text-muted-foreground">
-          <p>© 2025 10 ANA Digital Service. All rights reserved.</p>
+          <p>© 2025 Digital Drive Store. All rights reserved.</p>
         </div>
       </div>
     </footer>
