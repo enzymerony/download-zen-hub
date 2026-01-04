@@ -46,7 +46,7 @@ const ContactSection = () => {
       `Name: ${formData.name}\nEmail: ${formData.email}\nService Needed: ${formData.service}\n\nMessage:\n${formData.message}`
     );
     
-    window.location.href = `mailto:gjobs.xyz@email.com?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:ejobs.xyz@gmail.com?subject=${subject}&body=${body}`;
     
     toast({
       title: "Success",
@@ -140,8 +140,8 @@ const ContactSection = () => {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Email</p>
-                      <a href="mailto:gjobs.xyz@email.com" className="font-medium hover:text-primary transition-colors">
-                        gjobs.xyz@email.com
+                      <a href="mailto:ejobs.xyz@gmail.com" className="font-medium hover:text-primary transition-colors">
+                        ejobs.xyz@gmail.com
                       </a>
                     </div>
                   </div>
