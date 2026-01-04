@@ -14,6 +14,7 @@ import PdfToImage from "./pages/PdfToImage";
 import TopUp from "./pages/TopUp";
 import Auth from "./pages/Auth";
 import MyOrders from "./pages/MyOrders";
+import About from "./pages/About";
 import AdminLogin from "./pages/AdminLogin";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/pdf-to-image" element={<PdfToImage />} />
               <Route path="/topup" element={<TopUp />} />
               <Route path="/my-orders" element={<MyOrders />} />
+              <Route path="/about" element={<About />} />
             </Route>
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin/login" element={<AdminLogin />} />
