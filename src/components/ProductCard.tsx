@@ -34,7 +34,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             />
             {discountPercentage > 0 && (
               <Badge 
-                className="absolute top-3 left-3 bg-orange-500 hover:bg-orange-600 text-white border-0 font-bold"
+                className="absolute bottom-3 left-3 bg-orange-500 hover:bg-orange-600 text-white border-0 font-bold"
               >
                 -{discountPercentage}%
               </Badge>
