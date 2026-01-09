@@ -17,6 +17,7 @@ interface OrderWithUser {
   amount: number;
   status: string;
   created_at: string;
+  customer_instructions?: string | null;
   username?: string;
   email?: string;
 }
@@ -200,6 +201,7 @@ export default function AdminOrders() {
                     <TableHead>Date</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Product</TableHead>
+                    <TableHead>Customer Instructions</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -224,6 +226,22 @@ export default function AdminOrders() {
                       </TableCell>
                       <TableCell className="font-medium max-w-[200px] truncate">
                         {order.product_title}
+                      </TableCell>
+                      <TableCell className="max-w-[250px]">
+                        {order.customer_instructions ? (
+                          <div className="text-sm">
+                            <a 
+                              href={order.customer_instructions.startsWith('http') ? order.customer_instructions : undefined}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={order.customer_instructions.startsWith('http') ? 'text-primary hover:underline break-all' : 'break-all text-muted-foreground'}
+                            >
+                              {order.customer_instructions}
+                            </a>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm italic">No instructions</span>
+                        )}
                       </TableCell>
                       <TableCell className="font-semibold">৳{order.amount.toLocaleString()}</TableCell>
                       <TableCell>{getStatusBadge(order.status)}</TableCell>
