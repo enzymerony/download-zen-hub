@@ -55,6 +55,7 @@ interface ProductFormData {
   featured: boolean;
   badge: string;
   external_link: string;
+  image_url: string;
 }
 
 const initialFormData: ProductFormData = {
@@ -67,7 +68,8 @@ const initialFormData: ProductFormData = {
   subcategory: '',
   featured: false,
   badge: '',
-  external_link: ''
+  external_link: '',
+  image_url: ''
 };
 
 export default function AdminProducts() {
@@ -189,7 +191,8 @@ export default function AdminProducts() {
       subcategory: product.subcategory || '',
       featured: product.featured || false,
       badge: product.badge || '',
-      external_link: product.external_link || ''
+      external_link: product.external_link || '',
+      image_url: product.image_url || ''
     });
     setImagePreview(product.image_url);
     setImageFile(null);
@@ -218,6 +221,7 @@ export default function AdminProducts() {
 
     setSaving(true);
 
+    // Prioritize: uploaded file > URL input > existing
     let imageUrl = editingProduct?.image_url || null;
     if (imageFile) {
       imageUrl = await uploadImage(imageFile);
@@ -226,6 +230,8 @@ export default function AdminProducts() {
         setSaving(false);
         return;
       }
+    } else if (formData.image_url.trim()) {
+      imageUrl = formData.image_url.trim();
     }
 
     let fileUrl = existingFileUrl;
@@ -567,12 +573,15 @@ export default function AdminProducts() {
             <div className="space-y-2">
               <Label>Product Image</Label>
               <div className="flex items-center gap-4">
-                {imagePreview ? (
+                {(imagePreview || formData.image_url) ? (
                   <div className="relative w-24 h-24 rounded-lg overflow-hidden border">
                     <img
-                      src={imagePreview}
+                      src={imagePreview || formData.image_url}
                       alt="Preview"
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/placeholder.svg';
+                      }}
                     />
                   </div>
                 ) : (
@@ -580,16 +589,42 @@ export default function AdminProducts() {
                     <ImageIcon className="h-8 w-8 text-muted-foreground" />
                   </div>
                 )}
-                <div>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="max-w-[200px]"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Max 5MB. JPG, PNG, WebP
-                  </p>
+                <div className="flex-1 space-y-3">
+                  <div>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="max-w-[200px]"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Max 5MB. JPG, PNG, WebP
+                    </p>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">OR</span>
+                    </div>
+                  </div>
+                  <div>
+                    <Input
+                      type="url"
+                      value={formData.image_url}
+                      onChange={(e) => {
+                        setFormData({ ...formData, image_url: e.target.value });
+                        if (!imageFile) {
+                          setImagePreview(e.target.value || null);
+                        }
+                      }}
+                      placeholder="https://i.ibb.co/... or any image URL"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Paste an image URL from ImgBB, Google, etc.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
