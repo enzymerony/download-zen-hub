@@ -67,8 +67,9 @@ const getFallbackImage = (category: string, title: string): string => {
 
 // Convert database product to frontend Product type
 const mapDBProductToProduct = (dbProduct: DBProduct): Product => {
-  // Use image_url if it's a valid URL that works, otherwise use fallback
+  // Use image_url from database if available, otherwise use fallback
   const fallbackImage = getFallbackImage(dbProduct.category, dbProduct.title);
+  const productImage = dbProduct.image_url || fallbackImage;
   
   return {
     id: dbProduct.id,
@@ -82,7 +83,7 @@ const mapDBProductToProduct = (dbProduct: DBProduct): Product => {
     tags: dbProduct.tags || [],
     rating: dbProduct.rating ? Number(dbProduct.rating) : 5,
     reviewCount: dbProduct.review_count || 0,
-    images: [fallbackImage],
+    images: [productImage],
     featured: dbProduct.featured || false,
     badge: dbProduct.badge as Product['badge'],
     whatIncluded: dbProduct.what_included || undefined,
