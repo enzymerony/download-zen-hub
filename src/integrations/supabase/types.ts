@@ -263,15 +263,26 @@ export type Database = {
     Functions: {
       approve_deposit: { Args: { deposit_id: string }; Returns: boolean }
       approve_order: { Args: { p_order_id: string }; Returns: boolean }
-      deduct_balance: {
-        Args: {
-          p_amount: number
-          p_product_id: string
-          p_product_title: string
-          p_user_id: string
-        }
-        Returns: boolean
-      }
+      deduct_balance:
+        | {
+            Args: {
+              p_amount: number
+              p_product_id: string
+              p_product_title: string
+              p_user_id: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              p_amount: number
+              p_customer_instructions?: string
+              p_product_id: string
+              p_product_title: string
+              p_user_id: string
+            }
+            Returns: boolean
+          }
       get_user_id_by_username: { Args: { p_username: string }; Returns: string }
       has_role: {
         Args: {

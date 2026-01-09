@@ -15,9 +15,14 @@ import { supabase } from "@/integrations/supabase/client";
 const Cart = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [instructions, setInstructions] = useState<Record<string, string>>({});
   const { user } = useAuth();
   const { balance, refetch } = useWallet();
   const navigate = useNavigate();
+
+  const handleInstructionsChange = (productId: string, value: string) => {
+    setInstructions(prev => ({ ...prev, [productId]: value }));
+  };
 
   useEffect(() => {
     const updateCart = () => setCart(getCart());
@@ -63,7 +68,8 @@ const Cart = () => {
           p_user_id: user.id,
           p_amount: item.product.price * item.quantity,
           p_product_id: item.product.id,
-          p_product_title: item.product.title
+          p_product_title: item.product.title,
+          p_customer_instructions: instructions[item.product.id] || null
         });
 
         if (error || !data) {
@@ -170,6 +176,16 @@ const Cart = () => {
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
+                      </div>
+
+                      {/* Order Instructions Input */}
+                      <div className="mt-3 pt-3 border-t">
+                        <Input
+                          placeholder="Order Instructions / Paste Link Here (e.g., your Facebook profile link)"
+                          value={instructions[item.product.id] || ''}
+                          onChange={(e) => handleInstructionsChange(item.product.id, e.target.value)}
+                          className="text-sm"
+                        />
                       </div>
                     </div>
                   </div>
