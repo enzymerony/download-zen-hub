@@ -9,8 +9,11 @@ import { supabase } from '@/integrations/supabase/client';
  * RLS policies using has_role() function are the true security boundary.
  */
 
-// Cache duration for admin role check (15 minutes)
-const ADMIN_CACHE_DURATION = 15 * 60 * 1000;
+// Cache duration for admin role check (1 hour)
+const ADMIN_CACHE_DURATION = 60 * 60 * 1000;
+
+// Global in-memory cache to prevent loading on tab switches
+let inMemoryAdminCache: { userId: string; isAdmin: boolean } | null = null;
 
 interface AdminCache {
   userId: string;
@@ -61,11 +64,18 @@ const clearAdminCache = () => {
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // Initialize from in-memory cache immediately to prevent flicker
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [adminLoading, setAdminLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(() => {
+    // If we have in-memory cache, don't start in loading state
+    return !inMemoryAdminCache;
+  });
+  const [isAdmin, setIsAdmin] = useState(() => {
+    // Initialize from in-memory cache
+    return inMemoryAdminCache?.isAdmin ?? false;
+  });
   const initialCheckDone = useRef(false);
 
   const checkAdminRole = async (userId: string, forceRefresh = false): Promise<boolean> => {
@@ -96,12 +106,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const result = !!data;
     
-    // Cache the result
+    // Cache the result in both sessionStorage and memory
     setAdminCache({
       userId,
       isAdmin: result,
       timestamp: Date.now()
     });
+    
+    // Also update in-memory cache
+    inMemoryAdminCache = { userId, isAdmin: result };
     
     return result;
   };
@@ -126,6 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (hasValidCache) {
               setIsAdmin(cached.isAdmin);
               setAdminLoading(false);
+              inMemoryAdminCache = { userId: session.user.id, isAdmin: cached.isAdmin };
             } else {
               setAdminLoading(true);
               setTimeout(() => {
@@ -140,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsAdmin(false);
           setAdminLoading(false);
           clearAdminCache();
+          inMemoryAdminCache = null;
         }
       }
     );
@@ -163,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (hasValidCache) {
             setIsAdmin(cached.isAdmin);
             setAdminLoading(false);
+            inMemoryAdminCache = { userId: session.user.id, isAdmin: cached.isAdmin };
           } else {
             setAdminLoading(true);
             checkAdminRole(session.user.id).then((result) => {
@@ -197,6 +213,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     setIsAdmin(false);
+    clearAdminCache();
+    inMemoryAdminCache = null;
   };
 
   return (

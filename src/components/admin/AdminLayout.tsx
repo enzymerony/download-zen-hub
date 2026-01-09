@@ -26,9 +26,9 @@ export function AdminLayout() {
     navigate('/');
   };
 
-  // If we've already verified once and still have a user, don't show loading
-  // This prevents the loading spinner on tab switches
-  const shouldShowLoading = (loading || adminLoading) && !hasVerifiedOnce.current;
+  // Only show loading on initial page load, not on tab switches
+  // If we have user and isAdmin from cache, skip the loading state
+  const shouldShowLoading = loading || (adminLoading && !isAdmin && !hasVerifiedOnce.current);
 
   if (shouldShowLoading) {
     return (
