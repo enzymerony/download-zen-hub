@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { getCart, removeFromCart, updateQuantity, getCartTotal, clearCart } from "@/lib/cart";
 import { CartItem } from "@/types/product";
 import { toast } from "sonner";
@@ -179,13 +180,20 @@ const Cart = () => {
                       </div>
 
                       {/* Order Instructions Input */}
-                      <div className="mt-3 pt-3 border-t">
-                        <Input
-                          placeholder="Order Instructions / Paste Link Here (e.g., your Facebook profile link)"
+                      <div className="mt-4 pt-4 border-t border-dashed border-primary/30">
+                        <label className="block text-sm font-semibold text-foreground mb-2">
+                          📝 অর্ডার ইন্সট্রাকশন / লিংক পেস্ট করুন
+                        </label>
+                        <Textarea
+                          placeholder="এখানে আপনার অর্ডার ইন্সট্রাকশন লিখুন অথবা লিংক পেস্ট করুন (যেমন: আপনার Facebook প্রোফাইল লিংক)"
                           value={instructions[item.product.id] || ''}
                           onChange={(e) => handleInstructionsChange(item.product.id, e.target.value)}
-                          className="text-sm"
+                          className="min-h-[80px] text-base border-2 border-primary/20 focus:border-primary bg-primary/5 placeholder:text-muted-foreground/70"
+                          rows={3}
                         />
+                        <p className="text-xs text-muted-foreground mt-1.5">
+                          ⚡ টিপ: যদি কোনো লিংক পেস্ট করেন, সেটি অটোমেটিক ক্লিকযোগ্য হয়ে যাবে
+                        </p>
                       </div>
                     </div>
                   </div>

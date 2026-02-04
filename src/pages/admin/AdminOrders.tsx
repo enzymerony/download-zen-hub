@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, ShoppingCart, Search, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { LinkifyText } from '@/components/RichDescription';
 
 interface OrderWithUser {
   id: string;
@@ -229,15 +230,11 @@ export default function AdminOrders() {
                       </TableCell>
                       <TableCell className="max-w-[250px]">
                         {order.customer_instructions ? (
-                          <div className="text-sm">
-                            <a 
-                              href={order.customer_instructions.startsWith('http') ? order.customer_instructions : undefined}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={order.customer_instructions.startsWith('http') ? 'text-primary hover:underline break-all' : 'break-all text-muted-foreground'}
-                            >
-                              {order.customer_instructions}
-                            </a>
+                          <div className="text-sm bg-muted/50 p-2 rounded-md">
+                            <LinkifyText 
+                              text={order.customer_instructions} 
+                              className="break-all"
+                            />
                           </div>
                         ) : (
                           <span className="text-muted-foreground text-sm italic">No instructions</span>
