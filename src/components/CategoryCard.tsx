@@ -35,12 +35,12 @@ export const CategoryCard = ({ category }: CategoryCardProps) => {
 
   const cardContent = (
     <CardContent 
-      className="p-6 text-center"
+      className="p-3 text-center"
       onClick={handleClick}
     >
-      <div className="mb-4 flex justify-center">
+      <div className="mb-2 flex justify-center">
         <div className="relative">
-          <div className="w-32 h-32 rounded-2xl overflow-hidden bg-muted/50 flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+          <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl overflow-hidden bg-muted/50 flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
             <img
               src={iconPath}
               alt={category.name}
@@ -50,26 +50,26 @@ export const CategoryCard = ({ category }: CategoryCardProps) => {
         </div>
       </div>
       
-      <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
+      <h3 className="text-xs md:text-sm font-semibold mb-1 group-hover:text-primary transition-colors line-clamp-2">
         {category.name}
       </h3>
       
       {category.subcategories && (
         <>
-          <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground">
-            <span>{category.subcategories.length} subcategories</span>
-            <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+          <div className="flex items-center justify-center gap-0.5 text-[10px] md:text-xs text-muted-foreground">
+            <span>{category.subcategories.length}</span>
+            <ChevronDown className={`h-3 w-3 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
           </div>
           
           {isExpanded && (
-            <div className="mt-4 pt-4 border-t animate-fade-in">
-              <div className="flex flex-wrap gap-2 justify-center">
+            <div className="mt-2 pt-2 border-t animate-fade-in">
+              <div className="flex flex-wrap gap-1 justify-center">
                 {category.subcategories.map((sub, index) => (
                   <Link
                     key={index}
                     to={`/products?category=${category.id}&subcategory=${encodeURIComponent(sub)}`}
                     onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold 
+                    className="inline-flex items-center px-2 py-1 rounded-full text-[10px] md:text-xs font-semibold 
                       bg-gradient-to-r from-primary/10 to-primary/20 
                       text-primary border border-primary/30
                       hover:from-primary hover:to-primary hover:text-primary-foreground
