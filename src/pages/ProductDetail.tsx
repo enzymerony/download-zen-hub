@@ -12,6 +12,7 @@ import { addToCart } from "@/lib/cart";
 import { toast } from "sonner";
 import { ProductCard } from "@/components/ProductCard";
 import { BuyNowButton } from "@/components/BuyNowButton";
+import { RichDescription } from "@/components/RichDescription";
 import { useState } from "react";
 
 const ProductDetail = () => {
@@ -194,7 +195,7 @@ const ProductDetail = () => {
               <AccordionContent>
                 <Card>
                   <CardContent className="p-6">
-                    <p className="text-muted-foreground leading-relaxed mb-6">{product.description}</p>
+                    <RichDescription content={product.description} className="mb-6" />
                     
                     {product.features && product.features.length > 0 && (
                       <div className="mb-6">
