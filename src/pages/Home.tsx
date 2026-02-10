@@ -121,7 +121,7 @@ const Home = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-3 md:gap-4">
+          <div className="grid grid-cols-3 md:grid-cols-7 gap-3 md:gap-4">
             {categories.map((category) => (
               <CategoryCard key={category.id} category={category} />
             ))}

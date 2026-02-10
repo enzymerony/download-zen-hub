@@ -11,6 +11,7 @@ import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import PdfToImage from "./pages/PdfToImage";
+import RemoveWatermark from "./pages/RemoveWatermark";
 import TopUp from "./pages/TopUp";
 import Auth from "./pages/Auth";
 import MyOrders from "./pages/MyOrders";
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/pdf-to-image" element={<PdfToImage />} />
+              <Route path="/remove-watermark" element={<RemoveWatermark />} />
               <Route path="/topup" element={<TopUp />} />
               <Route path="/my-orders" element={<MyOrders />} />
               <Route path="/about" element={<About />} />
