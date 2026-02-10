@@ -87,8 +87,8 @@ export const CategoryCard = ({ category }: CategoryCardProps) => {
     </CardContent>
   );
 
-  if (category.id === "pdf-to-image" || category.id === "ai-photo-enhancer") {
-    const route = category.id === "pdf-to-image" ? "/pdf-to-image" : "/ai-photo-enhancer";
+  if (category.id === "pdf-to-image" || category.id === "ai-photo-enhancer" || category.id === "remove-watermark") {
+    const route = category.id === "pdf-to-image" ? "/pdf-to-image" : category.id === "remove-watermark" ? "/remove-watermark" : "/ai-photo-enhancer";
     return (
       <Link to={route}>
         <Card className="group hover-lift cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-xl border-2">
