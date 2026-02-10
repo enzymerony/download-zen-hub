@@ -2,3 +2,6 @@ project_id = "lfijhozoloipvmneidzc"
 
 [functions.bootstrap-admin]
 verify_jwt = true
+
+[functions.auto-transform-image]
+verify_jwt = false

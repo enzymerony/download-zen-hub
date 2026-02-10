@@ -54,6 +54,8 @@ const RemoveWatermark = () => {
   const sliderRef = useRef<HTMLDivElement>(null);
   const [isDraggingSlider, setIsDraggingSlider] = useState(false);
 
+  const [processingStatus, setProcessingStatus] = useState("");
+
   const handleFile = useCallback((file: File) => {
     if (!ACCEPTED_TYPES.includes(file.type)) {
       toast({ title: "Unsupported format", description: "Please upload PNG, JPEG, WEBP, or BMP.", variant: "destructive" });
@@ -65,11 +67,14 @@ const RemoveWatermark = () => {
     }
 
     setProcessing(true);
+    setProcessingStatus("Uploading image...");
     setUploadProgress(0);
+    setProcessedImage(null);
+
     const reader = new FileReader();
     const interval = setInterval(() => setUploadProgress(p => Math.min(p + 15, 90)), 100);
 
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       clearInterval(interval);
       setUploadProgress(100);
       const dataUrl = e.target?.result as string;
@@ -79,38 +84,65 @@ const RemoveWatermark = () => {
       const img = new window.Image();
       img.onload = () => {
         setImageSize({ w: img.width, h: img.height });
-        processImage(dataUrl, img);
       };
       img.src = dataUrl;
+
+      // Auto-process via AI
+      setProcessingStatus("Processing your image… Creating fresh watermark-free version…");
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auto-transform-image`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({ imageBase64: dataUrl }),
+          }
+        );
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({ error: "Processing failed" }));
+          throw new Error(errData.error || `Processing failed (${res.status})`);
+        }
+
+        const data = await res.json();
+        if (data.processedImageUrl) {
+          setProcessedImage(data.processedImageUrl);
+          toast({ title: "✨ Processing Complete!", description: "Watermark removed successfully using AI." });
+        } else {
+          throw new Error("No processed image returned");
+        }
+      } catch (err: any) {
+        console.error("AI processing error:", err);
+        toast({
+          title: "Processing Error",
+          description: err.message || "Failed to process image. Please try again.",
+          variant: "destructive",
+        });
+        // Fallback: apply local enhancement
+        applyLocalFallback(dataUrl);
+      } finally {
+        setProcessing(false);
+        setProcessingStatus("");
+      }
     };
     reader.readAsDataURL(file);
   }, []);
 
-  const processImage = (dataUrl: string, img: HTMLImageElement) => {
-    setTimeout(() => {
+  const applyLocalFallback = (dataUrl: string) => {
+    const img = new window.Image();
+    img.onload = () => {
       const canvas = document.createElement("canvas");
       canvas.width = img.width;
       canvas.height = img.height;
       const ctx = canvas.getContext("2d")!;
       ctx.filter = "contrast(1.08) saturate(1.12) brightness(1.03)";
       ctx.drawImage(img, 0, 0);
-
-      // Simulate watermark removal by applying subtle sharpening
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      for (let i = 0; i < data.length; i += 4) {
-        // Subtle color enhancement
-        data[i] = Math.min(255, data[i] * 1.02);
-        data[i + 1] = Math.min(255, data[i + 1] * 1.01);
-        data[i + 2] = Math.min(255, data[i + 2] * 1.03);
-      }
-      ctx.putImageData(imageData, 0, 0);
-
-      const result = canvas.toDataURL("image/png");
-      setProcessedImage(result);
-      setProcessing(false);
-      toast({ title: "Processing Complete!", description: "Watermark has been removed successfully." });
-    }, 2000);
+      setProcessedImage(canvas.toDataURL("image/png"));
+    };
+    img.src = dataUrl;
   };
 
   const applyAdjustments = useCallback(() => {
@@ -408,8 +440,8 @@ const RemoveWatermark = () => {
                   {processing ? (
                     <div className="flex flex-col items-center justify-center py-20 rounded-xl bg-muted/30 border">
                       <div className="w-16 h-16 rounded-full border-4 border-primary border-t-transparent animate-spin mb-4" />
-                      <p className="text-lg font-medium">Processing your image...</p>
-                      <p className="text-sm text-muted-foreground">AI is removing watermarks</p>
+                      <p className="text-lg font-medium">{processingStatus || "Processing your image..."}</p>
+                      <p className="text-sm text-muted-foreground">AI is creating a fresh watermark-free version</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
