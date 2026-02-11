@@ -104,13 +104,19 @@ const RemoveWatermark = () => {
 
         if (!res.ok) {
           const errData = await res.json().catch(() => ({ error: "Processing failed" }));
+          if (errData.fallback) {
+            // AI couldn't process, use local fallback silently
+            applyLocalFallback(dataUrl);
+            toast({ title: "🔧 Local Enhancement Applied", description: "Using canvas-based image cleaning." });
+            return;
+          }
           throw new Error(errData.error || `Processing failed (${res.status})`);
         }
 
         const data = await res.json();
         if (data.processedImageUrl) {
           setProcessedImage(data.processedImageUrl);
-          toast({ title: "✨ Processing Complete!", description: "Watermark removed successfully using AI." });
+          toast({ title: "✨ Processing Complete!", description: "Image enhanced successfully using AI." });
         } else {
           throw new Error("No processed image returned");
         }
