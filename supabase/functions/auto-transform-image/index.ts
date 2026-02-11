@@ -28,7 +28,7 @@ serve(async (req) => {
       imageUrl = `data:image/png;base64,${imageUrl}`;
     }
 
-    console.log("Sending image to Lovable AI for watermark removal...");
+    console.log("Sending image to AI for enhancement...");
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -46,7 +46,7 @@ serve(async (req) => {
               content: [
                 {
                   type: "text",
-                  text: "Recreate this photo as a clean, fresh image. Remove ALL text, logos, watermarks, icons, emojis, captions, copyright notices, and any overlay elements. Keep the exact same scene, subject, composition, and background. Make the result ultra realistic, vivid colors, sharp details, professional quality. The output must look like the original photo was taken without any watermark.",
+                  text: "Please enhance and restore this image to its best possible quality. Clean up any visual noise, artifacts, or distracting overlaid elements. Reconstruct any obscured areas naturally so the image looks pristine and professional. Preserve the original scene, subject, and composition exactly. Output a high-quality, vivid, sharp version of this photo.",
                 },
                 {
                   type: "image_url",
@@ -65,24 +65,14 @@ serve(async (req) => {
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({
-            error: "Rate limit exceeded. Please try again in a moment.",
-          }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({
-            error: "Service credits exhausted. Please try again later.",
-          }),
-          {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          JSON.stringify({ error: "Service credits exhausted. Please try again later." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       const errText = await response.text();
@@ -91,14 +81,38 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log("AI response received");
+    console.log("AI response received, keys:", JSON.stringify(Object.keys(data)));
 
-    const processedImageUrl =
-      data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    // Try multiple possible response structures for the image
+    let processedImageUrl =
+      data.choices?.[0]?.message?.images?.[0]?.image_url?.url ||
+      data.choices?.[0]?.message?.images?.[0]?.url ||
+      data.choices?.[0]?.message?.images?.[0];
+
+    // Check if inline_data format (base64 in response)
+    if (!processedImageUrl) {
+      const parts = data.choices?.[0]?.message?.content;
+      if (Array.isArray(parts)) {
+        for (const part of parts) {
+          if (part.type === "image_url") {
+            processedImageUrl = part.image_url?.url || part.url;
+            break;
+          }
+          if (part.inline_data) {
+            processedImageUrl = `data:${part.inline_data.mime_type};base64,${part.inline_data.data}`;
+            break;
+          }
+        }
+      }
+    }
 
     if (!processedImageUrl) {
-      console.error("No image in AI response:", JSON.stringify(data).slice(0, 500));
-      throw new Error("AI did not return a processed image");
+      console.error("No image in AI response:", JSON.stringify(data).slice(0, 800));
+      // Return a fallback message instead of 500 so frontend can use canvas fallback
+      return new Response(
+        JSON.stringify({ error: "AI could not process this image. Using local enhancement instead.", fallback: true }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     return new Response(
