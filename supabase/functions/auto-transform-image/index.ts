@@ -77,7 +77,10 @@ serve(async (req) => {
       }
       const errText = await response.text();
       console.error("AI gateway error:", response.status, errText);
-      throw new Error(`AI processing failed: ${response.status}`);
+      return new Response(
+        JSON.stringify({ error: "AI could not process this image. Using local enhancement instead.", fallback: true }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const data = await response.json();
