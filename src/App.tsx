@@ -12,6 +12,7 @@ import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import PdfToImage from "./pages/PdfToImage";
 import RemoveWatermark from "./pages/RemoveWatermark";
+import ImageCleaner from "./pages/ImageCleaner";
 import TopUp from "./pages/TopUp";
 import Auth from "./pages/Auth";
 import MyOrders from "./pages/MyOrders";
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="/cart" element={<Cart />} />
               <Route path="/pdf-to-image" element={<PdfToImage />} />
               <Route path="/remove-watermark" element={<RemoveWatermark />} />
+              <Route path="/image-cleaner" element={<ImageCleaner />} />
               <Route path="/topup" element={<TopUp />} />
               <Route path="/my-orders" element={<MyOrders />} />
               <Route path="/about" element={<About />} />
