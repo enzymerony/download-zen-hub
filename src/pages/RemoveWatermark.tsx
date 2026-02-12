@@ -451,34 +451,9 @@ const RemoveWatermark = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {/* Before/After Slider */}
-                      <div
-                        ref={sliderRef}
-                        className="relative overflow-hidden rounded-xl bg-muted/20 border cursor-ew-resize select-none"
-                        style={{ maxHeight: "500px" }}
-                        onMouseDown={() => setIsDraggingSlider(true)}
-                        onTouchStart={() => setIsDraggingSlider(true)}
-                      >
-                        {/* After (processed) - full width background */}
-                        <img src={processedImage || image} alt="After" className="w-full h-auto object-contain max-h-[500px] block mx-auto" />
-                        
-                        {/* Before (original) - clipped */}
-                        <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderPos}%` }}>
-                          <img src={originalImage || image} alt="Before" className="w-full h-auto object-contain max-h-[500px] block" style={{ width: sliderRef.current ? `${sliderRef.current.offsetWidth}px` : "100%" }} />
-                        </div>
-
-                        {/* Slider Line */}
-                        <div className="absolute top-0 bottom-0" style={{ left: `${sliderPos}%`, transform: "translateX(-50%)" }}>
-                          <div className="w-0.5 h-full bg-primary-foreground/80" />
-                          <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                            <span className="text-primary-foreground text-xs font-bold">↔</span>
-                          </div>
-                        </div>
-
-                        {/* Labels */}
-                        <div className="absolute top-3 left-3">
-                          <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm">Before</Badge>
-                        </div>
+                      {/* Cleaned Image Only */}
+                      <div className="relative overflow-hidden rounded-xl bg-muted/20 border" style={{ maxHeight: "500px" }}>
+                        <img src={processedImage || image} alt="Cleaned" className="w-full h-auto object-contain max-h-[500px] block mx-auto" />
                         <div className="absolute top-3 right-3">
                           <Badge className="bg-primary/80 backdrop-blur-sm text-primary-foreground">After</Badge>
                         </div>
