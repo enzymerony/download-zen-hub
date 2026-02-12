@@ -43,7 +43,6 @@ const RemoveWatermark = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   const [activeTool, setActiveTool] = useState<string>("auto");
-  const [sliderPos, setSliderPos] = useState(50);
   const [settings, setSettings] = useState<AdjustSettings>(defaultSettings);
   const [outputFormat, setOutputFormat] = useState("png");
   const [upscaleLevel, setUpscaleLevel] = useState("2x");
@@ -51,8 +50,6 @@ const RemoveWatermark = () => {
   const [imageSize, setImageSize] = useState({ w: 0, h: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const [isDraggingSlider, setIsDraggingSlider] = useState(false);
 
   const [processingStatus, setProcessingStatus] = useState("");
 
@@ -164,9 +161,77 @@ const RemoveWatermark = () => {
       const c = 1 + settings.contrast / 100;
       const s = 1 + settings.saturation / 100;
       const exp = 1 + settings.exposure / 100;
+      const warm = settings.warmth / 100; // -1 to 1
+      const highlight = 1 + settings.highlights / 200;
+      const shadow = 1 + settings.shadows / 200;
 
       ctx.filter = `brightness(${b * exp}) contrast(${c}) saturate(${s})`;
       ctx.drawImage(img, 0, 0);
+
+      // Apply sharpness, warmth, highlights, shadows manually via pixel manipulation
+      if (settings.sharpness !== 0 || settings.warmth !== 0 || settings.highlights !== 0 || settings.shadows !== 0) {
+        ctx.filter = "none";
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const d = imgData.data;
+        const w = canvas.width;
+        const h = canvas.height;
+
+        // Sharpness (unsharp mask)
+        if (settings.sharpness > 0) {
+          const orig = new Uint8ClampedArray(d);
+          const strength = settings.sharpness / 100;
+          for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+              const i = (y * w + x) * 4;
+              for (let ch = 0; ch < 3; ch++) {
+                const center = orig[i + ch] * (1 + 4 * strength);
+                const around =
+                  (orig[((y - 1) * w + x) * 4 + ch] +
+                    orig[((y + 1) * w + x) * 4 + ch] +
+                    orig[(y * w + x - 1) * 4 + ch] +
+                    orig[(y * w + x + 1) * 4 + ch]) * strength;
+                d[i + ch] = Math.max(0, Math.min(255, Math.round(center - around)));
+              }
+            }
+          }
+        }
+
+        // Warmth, Highlights, Shadows per-pixel
+        if (settings.warmth !== 0 || settings.highlights !== 0 || settings.shadows !== 0) {
+          for (let i = 0; i < d.length; i += 4) {
+            let r = d[i], g = d[i + 1], bl = d[i + 2];
+            const lum = (r + g + bl) / 3;
+
+            // Warmth: shift red up / blue down (or vice versa)
+            if (warm !== 0) {
+              r = Math.max(0, Math.min(255, r + warm * 30));
+              bl = Math.max(0, Math.min(255, bl - warm * 30));
+            }
+
+            // Highlights: brighten bright pixels
+            if (settings.highlights !== 0 && lum > 128) {
+              const factor = highlight;
+              r = Math.min(255, r * factor);
+              g = Math.min(255, g * factor);
+              bl = Math.min(255, bl * factor);
+            }
+
+            // Shadows: brighten/darken dark pixels
+            if (settings.shadows !== 0 && lum < 128) {
+              const factor = shadow;
+              r = Math.min(255, r * factor);
+              g = Math.min(255, g * factor);
+              bl = Math.min(255, bl * factor);
+            }
+
+            d[i] = r;
+            d[i + 1] = g;
+            d[i + 2] = bl;
+          }
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+      }
 
       const result = canvas.toDataURL("image/png");
       setProcessedImage(result);
@@ -256,29 +321,7 @@ const RemoveWatermark = () => {
     if (file) handleFile(file);
   };
 
-  const handleSliderMove = useCallback((clientX: number) => {
-    if (!sliderRef.current) return;
-    const rect = sliderRef.current.getBoundingClientRect();
-    const pos = ((clientX - rect.left) / rect.width) * 100;
-    setSliderPos(Math.max(0, Math.min(100, pos)));
-  }, []);
-
-  useEffect(() => {
-    if (!isDraggingSlider) return;
-    const onMove = (e: MouseEvent) => handleSliderMove(e.clientX);
-    const onTouchMove = (e: TouchEvent) => handleSliderMove(e.touches[0].clientX);
-    const onUp = () => setIsDraggingSlider(false);
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    window.addEventListener("touchmove", onTouchMove);
-    window.addEventListener("touchend", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-      window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("touchend", onUp);
-    };
-  }, [isDraggingSlider, handleSliderMove]);
+  // Unused slider comparison code removed
 
   const adjustSliders = [
     { key: "brightness", label: "Brightness", icon: Sun, min: -100, max: 100 },
