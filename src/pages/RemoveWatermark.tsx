@@ -48,8 +48,15 @@ const RemoveWatermark = () => {
   const [upscaleLevel, setUpscaleLevel] = useState("2x");
   const [showAdjust, setShowAdjust] = useState(false);
   const [imageSize, setImageSize] = useState({ w: 0, h: 0 });
+  const [brushSize, setBrushSize] = useState(20);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [cropStart, setCropStart] = useState<{ x: number; y: number } | null>(null);
+  const [cropEnd, setCropEnd] = useState<{ x: number; y: number } | null>(null);
+  const [isCropping, setIsCropping] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
+  const baseProcessedRef = useRef<string | null>(null); // stores the AI/fallback result before adjustments
 
   const [processingStatus, setProcessingStatus] = useState("");
 
@@ -112,6 +119,7 @@ const RemoveWatermark = () => {
 
         const data = await res.json();
         if (data.processedImageUrl) {
+          baseProcessedRef.current = data.processedImageUrl;
           setProcessedImage(data.processedImageUrl);
           toast({ title: "✨ Processing Complete!", description: "Image enhanced successfully using AI." });
         } else {
@@ -143,14 +151,20 @@ const RemoveWatermark = () => {
       const ctx = canvas.getContext("2d")!;
       ctx.filter = "contrast(1.08) saturate(1.12) brightness(1.03)";
       ctx.drawImage(img, 0, 0);
-      setProcessedImage(canvas.toDataURL("image/png"));
+      const result = canvas.toDataURL("image/png");
+      baseProcessedRef.current = result;
+      setProcessedImage(result);
     };
     img.src = dataUrl;
   };
 
   const applyAdjustments = useCallback(() => {
-    if (!originalImage) return;
+    // Always start from the base processed image (before any adjustments)
+    const sourceImage = baseProcessedRef.current || originalImage;
+    if (!sourceImage) return;
+
     const img = new window.Image();
+    img.crossOrigin = "anonymous";
     img.onload = () => {
       const canvas = document.createElement("canvas");
       canvas.width = img.width;
@@ -161,14 +175,11 @@ const RemoveWatermark = () => {
       const c = 1 + settings.contrast / 100;
       const s = 1 + settings.saturation / 100;
       const exp = 1 + settings.exposure / 100;
-      const warm = settings.warmth / 100; // -1 to 1
-      const highlight = 1 + settings.highlights / 200;
-      const shadow = 1 + settings.shadows / 200;
 
       ctx.filter = `brightness(${b * exp}) contrast(${c}) saturate(${s})`;
       ctx.drawImage(img, 0, 0);
 
-      // Apply sharpness, warmth, highlights, shadows manually via pixel manipulation
+      // Apply sharpness, warmth, highlights, shadows via pixel manipulation
       if (settings.sharpness !== 0 || settings.warmth !== 0 || settings.highlights !== 0 || settings.shadows !== 0) {
         ctx.filter = "none";
         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -176,7 +187,6 @@ const RemoveWatermark = () => {
         const w = canvas.width;
         const h = canvas.height;
 
-        // Sharpness (unsharp mask)
         if (settings.sharpness > 0) {
           const orig = new Uint8ClampedArray(d);
           const strength = settings.sharpness / 100;
@@ -196,32 +206,27 @@ const RemoveWatermark = () => {
           }
         }
 
-        // Warmth, Highlights, Shadows per-pixel
         if (settings.warmth !== 0 || settings.highlights !== 0 || settings.shadows !== 0) {
+          const warm = settings.warmth / 100;
+          const highlight = 1 + settings.highlights / 200;
+          const shadow = 1 + settings.shadows / 200;
           for (let i = 0; i < d.length; i += 4) {
             let r = d[i], g = d[i + 1], bl = d[i + 2];
             const lum = (r + g + bl) / 3;
 
-            // Warmth: shift red up / blue down (or vice versa)
             if (warm !== 0) {
               r = Math.max(0, Math.min(255, r + warm * 30));
               bl = Math.max(0, Math.min(255, bl - warm * 30));
             }
-
-            // Highlights: brighten bright pixels
             if (settings.highlights !== 0 && lum > 128) {
-              const factor = highlight;
-              r = Math.min(255, r * factor);
-              g = Math.min(255, g * factor);
-              bl = Math.min(255, bl * factor);
+              r = Math.min(255, r * highlight);
+              g = Math.min(255, g * highlight);
+              bl = Math.min(255, bl * highlight);
             }
-
-            // Shadows: brighten/darken dark pixels
             if (settings.shadows !== 0 && lum < 128) {
-              const factor = shadow;
-              r = Math.min(255, r * factor);
-              g = Math.min(255, g * factor);
-              bl = Math.min(255, bl * factor);
+              r = Math.min(255, r * shadow);
+              g = Math.min(255, g * shadow);
+              bl = Math.min(255, bl * shadow);
             }
 
             d[i] = r;
@@ -233,11 +238,10 @@ const RemoveWatermark = () => {
         ctx.putImageData(imgData, 0, 0);
       }
 
-      const result = canvas.toDataURL("image/png");
-      setProcessedImage(result);
+      setProcessedImage(canvas.toDataURL("image/png"));
     };
-    img.src = processedImage || originalImage;
-  }, [settings, originalImage, processedImage]);
+    img.src = sourceImage;
+  }, [settings, originalImage]);
 
   useEffect(() => {
     if (image) applyAdjustments();
@@ -255,7 +259,10 @@ const RemoveWatermark = () => {
       ctx.filter = "contrast(1.15) saturate(1.2) brightness(1.05)";
       ctx.drawImage(img, 0, 0);
       setTimeout(() => {
-        setProcessedImage(canvas.toDataURL("image/png"));
+        const result = canvas.toDataURL("image/png");
+        baseProcessedRef.current = result;
+        setProcessedImage(result);
+        setSettings(defaultSettings);
         setProcessing(false);
         toast({ title: "Enhanced!", description: "Image quality has been improved." });
       }, 1500);
@@ -287,12 +294,273 @@ const RemoveWatermark = () => {
   };
 
   const handleRestore = () => {
-    if (originalImage) {
+    if (baseProcessedRef.current) {
+      setProcessedImage(baseProcessedRef.current);
+      setSettings(defaultSettings);
+      toast({ title: "Restored", description: "Image restored to AI-processed state." });
+    } else if (originalImage) {
       setProcessedImage(originalImage);
       setSettings(defaultSettings);
       toast({ title: "Restored", description: "Image restored to original." });
     }
   };
+
+  // Tool handlers
+  const handleAutoRemove = useCallback(() => {
+    if (!originalImage) return;
+    // Re-trigger AI processing
+    const dataUrl = originalImage;
+    setProcessing(true);
+    setProcessingStatus("Re-processing with AI...");
+    (async () => {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auto-transform-image`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({ imageBase64: dataUrl }),
+          }
+        );
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({ error: "Processing failed" }));
+          if (errData.fallback) {
+            applyLocalFallback(dataUrl);
+            toast({ title: "🔧 Local Enhancement Applied", description: "Using canvas-based image cleaning." });
+            return;
+          }
+          throw new Error(errData.error || `Processing failed`);
+        }
+        const data = await res.json();
+        if (data.processedImageUrl) {
+          baseProcessedRef.current = data.processedImageUrl;
+          setProcessedImage(data.processedImageUrl);
+          setSettings(defaultSettings);
+          toast({ title: "✨ Auto Remove Complete!", description: "Watermark removed using AI." });
+        }
+      } catch (err: any) {
+        applyLocalFallback(dataUrl);
+        toast({ title: "🔧 Local Enhancement", description: "AI unavailable, using local processing." });
+      } finally {
+        setProcessing(false);
+        setProcessingStatus("");
+      }
+    })();
+  }, [originalImage]);
+
+  // Brush/Eraser: paint on overlay canvas to mark areas, then inpaint
+  const handleCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (activeTool !== "brush" && activeTool !== "eraser") return;
+    setIsDrawing(true);
+    const canvas = overlayCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    const ctx = canvas.getContext("2d")!;
+    ctx.beginPath();
+    ctx.arc(x, y, brushSize * scaleX, 0, Math.PI * 2);
+    ctx.fillStyle = activeTool === "brush" ? "rgba(255,0,0,0.3)" : "rgba(0,0,255,0.3)";
+    ctx.fill();
+  }, [activeTool, brushSize]);
+
+  const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    if (activeTool !== "brush" && activeTool !== "eraser") return;
+    const canvas = overlayCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    const ctx = canvas.getContext("2d")!;
+    ctx.beginPath();
+    ctx.arc(x, y, brushSize * scaleX, 0, Math.PI * 2);
+    ctx.fillStyle = activeTool === "brush" ? "rgba(255,0,0,0.3)" : "rgba(0,0,255,0.3)";
+    ctx.fill();
+  }, [isDrawing, activeTool, brushSize]);
+
+  const handleCanvasMouseUp = useCallback(() => {
+    if (!isDrawing) return;
+    setIsDrawing(false);
+    // Apply inpainting on marked areas
+    const overlay = overlayCanvasRef.current;
+    const source = baseProcessedRef.current || processedImage;
+    if (!overlay || !source) return;
+
+    const overlayCtx = overlay.getContext("2d")!;
+    const overlayData = overlayCtx.getImageData(0, 0, overlay.width, overlay.height);
+
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0);
+
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const d = imgData.data;
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // Find marked pixels from overlay
+      const mask = new Uint8Array(w * h);
+      for (let i = 0; i < w * h; i++) {
+        const alpha = overlayData.data[i * 4 + 3];
+        if (alpha > 10) mask[i] = 1;
+      }
+
+      // Simple inpainting: replace marked pixels with average of surrounding unmarked pixels
+      for (let pass = 0; pass < 3; pass++) {
+        for (let y = 2; y < h - 2; y++) {
+          for (let x = 2; x < w - 2; x++) {
+            const idx = y * w + x;
+            if (mask[idx] === 1) {
+              let totalR = 0, totalG = 0, totalB = 0, count = 0;
+              const radius = 5 + pass * 3;
+              for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                  const nx = x + dx, ny = y + dy;
+                  if (nx >= 0 && nx < w && ny >= 0 && ny < h && mask[ny * w + nx] === 0) {
+                    const ni = (ny * w + nx) * 4;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const weight = 1 / (1 + dist);
+                    totalR += d[ni] * weight;
+                    totalG += d[ni + 1] * weight;
+                    totalB += d[ni + 2] * weight;
+                    count += weight;
+                  }
+                }
+              }
+              if (count > 0) {
+                const pi = idx * 4;
+                d[pi] = Math.round(totalR / count);
+                d[pi + 1] = Math.round(totalG / count);
+                d[pi + 2] = Math.round(totalB / count);
+              }
+            }
+          }
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      const result = canvas.toDataURL("image/png");
+      baseProcessedRef.current = result;
+      setProcessedImage(result);
+
+      // Clear overlay
+      overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+      toast({ title: activeTool === "brush" ? "🖌️ Brush Applied" : "🧹 Eraser Applied", description: "Selected area has been cleaned." });
+    };
+    img.src = source;
+  }, [isDrawing, activeTool, processedImage]);
+
+  // Crop handlers
+  const handleCropMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (activeTool !== "crop") return;
+    const canvas = overlayCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    setCropStart({ x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY });
+    setCropEnd(null);
+    setIsCropping(true);
+  }, [activeTool]);
+
+  const handleCropMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isCropping || activeTool !== "crop") return;
+    const canvas = overlayCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const end = { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+    setCropEnd(end);
+
+    // Draw crop rectangle on overlay
+    const ctx = canvas.getContext("2d")!;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (cropStart) {
+      ctx.fillStyle = "rgba(0,0,0,0.5)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const x = Math.min(cropStart.x, end.x);
+      const y = Math.min(cropStart.y, end.y);
+      const w = Math.abs(end.x - cropStart.x);
+      const h = Math.abs(end.y - cropStart.y);
+      ctx.clearRect(x, y, w, h);
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(x, y, w, h);
+    }
+  }, [isCropping, activeTool, cropStart]);
+
+  const handleCropMouseUp = useCallback(() => {
+    if (!isCropping || !cropStart || !cropEnd) {
+      setIsCropping(false);
+      return;
+    }
+    setIsCropping(false);
+    const source = processedImage || baseProcessedRef.current;
+    if (!source) return;
+
+    const x = Math.min(cropStart.x, cropEnd.x);
+    const y = Math.min(cropStart.y, cropEnd.y);
+    const w = Math.abs(cropEnd.x - cropStart.x);
+    const h = Math.abs(cropEnd.y - cropStart.y);
+
+    if (w < 10 || h < 10) {
+      const overlay = overlayCanvasRef.current;
+      if (overlay) overlay.getContext("2d")!.clearRect(0, 0, overlay.width, overlay.height);
+      return;
+    }
+
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
+      const result = canvas.toDataURL("image/png");
+      baseProcessedRef.current = result;
+      setProcessedImage(result);
+      setImageSize({ w: Math.round(w), h: Math.round(h) });
+      toast({ title: "✂️ Cropped!", description: `Image cropped to ${Math.round(w)}×${Math.round(h)}` });
+    };
+    img.src = source;
+
+    setCropStart(null);
+    setCropEnd(null);
+    const overlay = overlayCanvasRef.current;
+    if (overlay) overlay.getContext("2d")!.clearRect(0, 0, overlay.width, overlay.height);
+  }, [isCropping, cropStart, cropEnd, processedImage]);
+
+  // Combined mouse handlers for overlay canvas
+  const onOverlayMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (activeTool === "crop") handleCropMouseDown(e);
+    else handleCanvasMouseDown(e);
+  }, [activeTool, handleCropMouseDown, handleCanvasMouseDown]);
+
+  const onOverlayMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (activeTool === "crop") handleCropMouseMove(e);
+    else handleCanvasMouseMove(e);
+  }, [activeTool, handleCropMouseMove, handleCanvasMouseMove]);
+
+  const onOverlayMouseUp = useCallback(() => {
+    if (activeTool === "crop") handleCropMouseUp();
+    else handleCanvasMouseUp();
+  }, [activeTool, handleCropMouseUp, handleCanvasMouseUp]);
 
   const handleDownload = () => {
     if (!processedImage) return;
@@ -432,7 +700,10 @@ const RemoveWatermark = () => {
                         <Button
                           size="sm"
                           variant={activeTool === tool.id ? "default" : "ghost"}
-                          onClick={() => setActiveTool(tool.id)}
+                          onClick={() => {
+                            setActiveTool(tool.id);
+                            if (tool.id === "auto") handleAutoRemove();
+                          }}
                         >
                           <tool.icon className="h-4 w-4 mr-1" />
                           <span className="hidden sm:inline">{tool.label}</span>
@@ -441,6 +712,23 @@ const RemoveWatermark = () => {
                       <TooltipContent>{tool.label}</TooltipContent>
                     </Tooltip>
                   ))}
+                  {(activeTool === "brush" || activeTool === "eraser") && (
+                    <div className="flex items-center gap-2 ml-2 px-2 py-1 rounded-lg bg-muted/50">
+                      <span className="text-xs text-muted-foreground">Size:</span>
+                      <Slider
+                        min={5}
+                        max={50}
+                        step={1}
+                        value={[brushSize]}
+                        onValueChange={([v]) => setBrushSize(v)}
+                        className="w-24"
+                      />
+                      <span className="text-xs font-mono w-6">{brushSize}</span>
+                    </div>
+                  )}
+                  {activeTool === "crop" && (
+                    <span className="text-xs text-muted-foreground ml-2 self-center">Click and drag to select crop area</span>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" onClick={() => setShowAdjust(!showAdjust)}>
@@ -494,9 +782,34 @@ const RemoveWatermark = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {/* Cleaned Image Only */}
+                      {/* Cleaned Image with Overlay Canvas */}
                       <div className="relative overflow-hidden rounded-xl bg-muted/20 border" style={{ maxHeight: "500px" }}>
-                        <img src={processedImage || image} alt="Cleaned" className="w-full h-auto object-contain max-h-[500px] block mx-auto" />
+                        <img
+                          src={processedImage || image}
+                          alt="Cleaned"
+                          className="w-full h-auto object-contain max-h-[500px] block mx-auto"
+                          onLoad={(e) => {
+                            const imgEl = e.currentTarget;
+                            const overlay = overlayCanvasRef.current;
+                            if (overlay) {
+                              overlay.width = imgEl.naturalWidth;
+                              overlay.height = imgEl.naturalHeight;
+                              overlay.style.width = imgEl.clientWidth + "px";
+                              overlay.style.height = imgEl.clientHeight + "px";
+                            }
+                          }}
+                        />
+                        {(activeTool === "brush" || activeTool === "eraser" || activeTool === "crop") && (
+                          <canvas
+                            ref={overlayCanvasRef}
+                            className="absolute top-0 left-1/2 -translate-x-1/2 max-h-[500px] object-contain"
+                            style={{ cursor: activeTool === "crop" ? "crosshair" : "pointer" }}
+                            onMouseDown={onOverlayMouseDown}
+                            onMouseMove={onOverlayMouseMove}
+                            onMouseUp={onOverlayMouseUp}
+                            onMouseLeave={onOverlayMouseUp}
+                          />
+                        )}
                         <div className="absolute top-3 right-3">
                           <Badge className="bg-primary/80 backdrop-blur-sm text-primary-foreground">After</Badge>
                         </div>
