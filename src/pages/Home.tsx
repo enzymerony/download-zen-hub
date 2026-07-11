@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProductCard } from "@/components/ProductCard";
 import { CategoryCard } from "@/components/CategoryCard";
+import SewingManualsSection from "@/components/SewingManualsSection";
 import ContactSection from "@/components/ContactSection";
 import { useProducts } from "@/hooks/useProducts";
 import { products as staticProducts } from "@/data/products";
@@ -121,13 +122,16 @@ const Home = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-3 md:grid-cols-7 gap-3 md:gap-4">
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-3 md:gap-4">
             {categories.map((category) => (
               <CategoryCard key={category.id} category={category} />
             ))}
           </div>
         </div>
       </section>
+
+      {/* Sewing Machine Board Manuals */}
+      <SewingManualsSection />
 
       {/* Top Selling Products */}
       <section className="py-12 bg-muted/30">
