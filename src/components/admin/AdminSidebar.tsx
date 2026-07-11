@@ -4,6 +4,7 @@ import {
   Wallet, 
   ShoppingCart, 
   Package, 
+  FileText,
   LayoutDashboard,
   LogOut,
   ChevronLeft,
@@ -43,6 +44,11 @@ const navItems = [
     title: 'Products', 
     href: '/admin/products', 
     icon: Package 
+  },
+  {
+    title: 'Manuals',
+    href: '/admin/manuals',
+    icon: FileText,
   },
 ];
 
