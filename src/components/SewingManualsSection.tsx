@@ -2,67 +2,118 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 // @ts-ignore vite worker url import
 import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-import { Search, Lock, Wallet, FileText, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import {
+  Search,
+  Wallet,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Download,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { manuals, Manual } from "@/data/manuals";
+import { useManuals, Manual } from "@/data/manualsStore";
 import { useWallet } from "@/hooks/useWallet";
 import { useAuth } from "@/hooks/useAuth";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
 
-const PURCHASE_KEY = "purchased_manuals_v1";
+const DOWNLOAD_KEY = "downloaded_manuals_v1";
 
-function getPurchased(): string[] {
+function getDownloaded(): string[] {
   try {
-    return JSON.parse(localStorage.getItem(PURCHASE_KEY) || "[]");
+    return JSON.parse(localStorage.getItem(DOWNLOAD_KEY) || "[]");
   } catch {
     return [];
   }
 }
-function markPurchased(id: string) {
-  const list = getPurchased();
+function markDownloaded(id: string) {
+  const list = getDownloaded();
   if (!list.includes(id)) {
     list.push(id);
-    localStorage.setItem(PURCHASE_KEY, JSON.stringify(list));
+    localStorage.setItem(DOWNLOAD_KEY, JSON.stringify(list));
+  }
+}
+
+async function triggerDownload(url: string, filename: string) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("fetch failed");
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  } catch {
+    // CORS or network — fall back to opening in new tab
+    window.open(url, "_blank", "noopener,noreferrer");
   }
 }
 
 export default function SewingManualsSection() {
+  const allManuals = useManuals();
   const [query, setQuery] = useState("");
-  const [selectedId, setSelectedId] = useState<string>(manuals[0].id);
-  const [purchased, setPurchased] = useState<string[]>(getPurchased());
+  const [selectedId, setSelectedId] = useState<string>(
+    allManuals[0]?.id ?? ""
+  );
+  const [downloaded, setDownloaded] = useState<string[]>(getDownloaded());
   const { user } = useAuth();
   const { balance, purchaseWithBalance, refetch } = useWallet();
 
+  useEffect(() => {
+    // keep selection valid if admin deletes item
+    if (allManuals.length && !allManuals.find((m) => m.id === selectedId)) {
+      setSelectedId(allManuals[0].id);
+    }
+  }, [allManuals, selectedId]);
+
   const selected = useMemo(
-    () => manuals.find((m) => m.id === selectedId)!,
-    [selectedId]
+    () => allManuals.find((m) => m.id === selectedId) ?? allManuals[0],
+    [selectedId, allManuals]
   );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return manuals;
-    return manuals.filter(
+    if (!q) return allManuals;
+    return allManuals.filter(
       (m) =>
         m.brand.toLowerCase().includes(q) ||
         m.model.toLowerCase().includes(q) ||
         m.boardModel.toLowerCase().includes(q)
     );
-  }, [query]);
+  }, [query, allManuals]);
 
-  const isUnlocked = !selected.isPremium || purchased.includes(selected.id);
+  if (!selected) return null;
 
-  const handleBuy = async () => {
+  const isPaid = selected.price > 0;
+  const alreadyPaid = downloaded.includes(selected.id);
+
+  const handleDownload = async () => {
+    const filename = `${selected.brand}-${selected.model}.pdf`.replace(
+      /\s+/g,
+      "_"
+    );
+
+    if (!isPaid || alreadyPaid) {
+      await triggerDownload(selected.pdfUrl, filename);
+      toast.success("Download started");
+      return;
+    }
+
     if (!user) {
-      toast.error("অনুগ্রহ করে প্রথমে লগইন করুন।");
+      toast.error("Please sign in to download premium manuals.");
       return;
     }
     if (balance < selected.price) {
-      toast.error("Insufficient Balance! Please top up your wallet.");
+      toast.error("Insufficient Balance to download this manual.");
       return;
     }
     try {
@@ -72,17 +123,17 @@ export default function SewingManualsSection() {
         selected.price
       );
       if (ok === false) {
-        toast.error("Insufficient Balance! Please top up your wallet.");
+        toast.error("Insufficient Balance to download this manual.");
         return;
       }
     } catch (e) {
-      // fallback: proceed as mock purchase
-      console.warn("purchase rpc failed, using mock unlock", e);
+      console.warn("purchase failed, allowing download as fallback", e);
     }
-    markPurchased(selected.id);
-    setPurchased(getPurchased());
+    markDownloaded(selected.id);
+    setDownloaded(getDownloaded());
     refetch();
-    toast.success(`✅ Unlocked: ${selected.brand} ${selected.model}`);
+    await triggerDownload(selected.pdfUrl, filename);
+    toast.success(`✅ Purchased & downloaded: ${selected.brand} ${selected.model}`);
   };
 
   return (
@@ -93,7 +144,7 @@ export default function SewingManualsSection() {
             Sewing Machine Board Manuals
           </h2>
           <p className="text-muted-foreground">
-            Search brand, model or board — read secure PDFs online
+            Read any manual online for free. Pay only to download premium PDFs.
           </p>
         </div>
 
@@ -117,7 +168,6 @@ export default function SewingManualsSection() {
               )}
               {filtered.map((m) => {
                 const active = m.id === selectedId;
-                const unlocked = !m.isPremium || purchased.includes(m.id);
                 return (
                   <button
                     key={m.id}
@@ -137,14 +187,14 @@ export default function SewingManualsSection() {
                           Board: {m.boardModel}
                         </p>
                       </div>
-                      {m.isPremium ? (
-                        unlocked ? (
-                          <Badge variant="secondary" className="shrink-0">Owned</Badge>
-                        ) : (
-                          <Badge variant="default" className="shrink-0">৳{m.price}</Badge>
-                        )
+                      {m.price > 0 ? (
+                        <Badge variant="default" className="shrink-0">
+                          ৳{m.price}
+                        </Badge>
                       ) : (
-                        <Badge variant="outline" className="shrink-0">Free</Badge>
+                        <Badge variant="outline" className="shrink-0">
+                          Free
+                        </Badge>
                       )}
                     </div>
                   </button>
@@ -156,9 +206,8 @@ export default function SewingManualsSection() {
           {/* Viewer */}
           <div className="space-y-3">
             <SecurePdfViewer
-              key={selected.id + (isUnlocked ? "-u" : "-l")}
+              key={selected.id}
               url={selected.pdfUrl}
-              locked={!isUnlocked}
               title={`${selected.brand} ${selected.model}`}
             />
 
@@ -175,27 +224,25 @@ export default function SewingManualsSection() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <Wallet className="h-4 w-4" />
-                  Balance: <span className="font-semibold text-foreground">৳{balance.toFixed(0)}</span>
+                  Balance:{" "}
+                  <span className="font-semibold text-foreground">
+                    ৳{balance.toFixed(0)}
+                  </span>
                 </div>
-                {selected.isPremium && !isUnlocked && (
-                  <>
-                    <Badge variant="default" className="text-sm">৳ {selected.price}</Badge>
-                    <Button
-                      onClick={handleBuy}
-                      disabled={balance < selected.price}
-                    >
-                      Buy Manual
-                    </Button>
-                  </>
-                )}
-                {isUnlocked && (
-                  <Badge variant="secondary" className="text-sm">
-                    ✓ Unlocked
+                {isPaid && !alreadyPaid && (
+                  <Badge variant="default" className="text-sm">
+                    ৳ {selected.price} to download
                   </Badge>
                 )}
+                <Button onClick={handleDownload} className="gap-2">
+                  <Download className="h-4 w-4" />
+                  {isPaid && !alreadyPaid
+                    ? `Buy & Download (৳${selected.price})`
+                    : "Download PDF"}
+                </Button>
               </div>
             </Card>
           </div>
@@ -205,15 +252,14 @@ export default function SewingManualsSection() {
   );
 }
 
-/* -------------------- Secure PDF Viewer -------------------- */
+/* -------------------- Secure PDF Viewer (view-only, no download UI) -------------------- */
 
 interface ViewerProps {
   url: string;
-  locked: boolean;
   title: string;
 }
 
-function SecurePdfViewer({ url, locked, title }: ViewerProps) {
+function SecurePdfViewer({ url, title }: ViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pdf, setPdf] = useState<any>(null);
   const [numPages, setNumPages] = useState(0);
@@ -223,18 +269,18 @@ function SecurePdfViewer({ url, locked, title }: ViewerProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const pagesRef = useRef<HTMLDivElement[]>([]);
 
-  // Load PDF
   useEffect(() => {
-    if (locked) return;
     let cancelled = false;
     setLoading(true);
+    setPdf(null);
+    setNumPages(0);
+    setPageTexts([]);
     (async () => {
       try {
         const doc = await pdfjsLib.getDocument(url).promise;
         if (cancelled) return;
         setPdf(doc);
         setNumPages(doc.numPages);
-        // Preload text for search
         const texts: string[] = [];
         for (let i = 1; i <= doc.numPages; i++) {
           const page = await doc.getPage(i);
@@ -252,14 +298,13 @@ function SecurePdfViewer({ url, locked, title }: ViewerProps) {
     return () => {
       cancelled = true;
     };
-  }, [url, locked]);
+  }, [url]);
 
-  // Render pages
   useEffect(() => {
     if (!pdf) return;
     let cancelled = false;
     (async () => {
-      pagesRef.current = [];
+      pagesRef.current = pagesRef.current.slice(0, pdf.numPages);
       for (let i = 1; i <= pdf.numPages; i++) {
         if (cancelled) return;
         const page = await pdf.getPage(i);
@@ -271,7 +316,8 @@ function SecurePdfViewer({ url, locked, title }: ViewerProps) {
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         const ctx = canvas.getContext("2d")!;
-        await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+        await page.render({ canvasContext: ctx, viewport, canvas } as any)
+          .promise;
       }
     })();
     return () => {
@@ -279,7 +325,6 @@ function SecurePdfViewer({ url, locked, title }: ViewerProps) {
     };
   }, [pdf]);
 
-  // Security: block context menu + shortcuts
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -292,11 +337,9 @@ function SecurePdfViewer({ url, locked, title }: ViewerProps) {
       ) {
         e.preventDefault();
         e.stopPropagation();
-        toast.error("This action is disabled for secure manuals.");
+        toast.error("Use the Download PDF button below.");
       }
-      if (k === "f12") {
-        e.preventDefault();
-      }
+      if (k === "f12") e.preventDefault();
     };
     el.addEventListener("contextmenu", blockContext);
     window.addEventListener("keydown", blockKeys);
@@ -325,21 +368,8 @@ function SecurePdfViewer({ url, locked, title }: ViewerProps) {
     toast.success(`Found on page ${pageNum}`);
   };
 
-  if (locked) {
-    return (
-      <Card className="p-10 text-center bg-gradient-to-br from-muted/40 to-muted/10 min-h-[420px] flex flex-col items-center justify-center">
-        <Lock className="h-14 w-14 text-primary mb-4" />
-        <h3 className="text-xl font-bold mb-2">This is a Premium Manual</h3>
-        <p className="text-muted-foreground max-w-md">
-          Please purchase to unlock full access to <b>{title}</b>.
-        </p>
-      </Card>
-    );
-  }
-
   return (
     <Card className="overflow-hidden">
-      {/* Toolbar */}
       <div className="p-3 border-b bg-muted/30 flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[220px]">
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -351,7 +381,9 @@ function SecurePdfViewer({ url, locked, title }: ViewerProps) {
             className="pl-9"
           />
         </div>
-        <Button onClick={handleSearch} size="sm">Search</Button>
+        <Button onClick={handleSearch} size="sm">
+          Search
+        </Button>
         <div className="flex items-center gap-1 ml-auto">
           <Button
             size="icon"
@@ -359,7 +391,10 @@ function SecurePdfViewer({ url, locked, title }: ViewerProps) {
             onClick={() => {
               const p = Math.max(1, currentPage - 1);
               setCurrentPage(p);
-              pagesRef.current[p - 1]?.scrollIntoView({ behavior: "smooth", block: "start" });
+              pagesRef.current[p - 1]?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
             }}
           >
             <ChevronLeft className="h-4 w-4" />
@@ -373,7 +408,10 @@ function SecurePdfViewer({ url, locked, title }: ViewerProps) {
             onClick={() => {
               const p = Math.min(numPages, currentPage + 1);
               setCurrentPage(p);
-              pagesRef.current[p - 1]?.scrollIntoView({ behavior: "smooth", block: "start" });
+              pagesRef.current[p - 1]?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
             }}
           >
             <ChevronRight className="h-4 w-4" />
@@ -381,7 +419,6 @@ function SecurePdfViewer({ url, locked, title }: ViewerProps) {
         </div>
       </div>
 
-      {/* PDF area */}
       <div
         ref={containerRef}
         className="relative bg-neutral-900 max-h-[70vh] overflow-y-auto select-none"
@@ -406,9 +443,8 @@ function SecurePdfViewer({ url, locked, title }: ViewerProps) {
             </div>
           ))}
         </div>
-        {/* Anti-screenshot overlay watermark */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.06] text-4xl font-bold rotate-[-25deg] text-white">
-          10 ANA • SECURE
+          10 ANA • {title}
         </div>
       </div>
     </Card>
