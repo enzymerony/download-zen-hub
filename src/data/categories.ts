@@ -53,10 +53,5 @@ export const categories: Category[] = [
     id: "pdf-to-image",
     name: "PDF To Image",
     icon: "digital-services.png"
-  },
-  {
-    id: "remove-watermark",
-    name: "Remove Watermark",
-    icon: "digital-services.png"
   }
 ];
