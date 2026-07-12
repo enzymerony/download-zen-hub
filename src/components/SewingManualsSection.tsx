@@ -322,18 +322,13 @@ export default function SewingManualsSection() {
 /* ------------------ Google Drive / PDF Iframe Viewer ------------------ */
 
 function DrivePdfViewer({ url, title }: { url: string; title: string }) {
-  const [loading, setLoading] = useState(true);
-  const embedUrl = useMemo(() => {
+  const convertedUrl = useMemo(() => {
     if (!url) return "";
     if (isDriveUrl(url)) return toDrivePreview(url);
-    return url; // native browser PDF viewer will handle direct .pdf URLs
+    return url;
   }, [url]);
 
-  useEffect(() => {
-    setLoading(true);
-  }, [embedUrl]);
-
-  if (!embedUrl) {
+  if (!convertedUrl) {
     return (
       <Card className="p-6 text-center text-muted-foreground">
         No PDF URL configured for this manual.
@@ -342,21 +337,15 @@ function DrivePdfViewer({ url, title }: { url: string; title: string }) {
   }
 
   return (
-    <Card className="overflow-hidden relative">
-      {loading && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-muted/60">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      )}
-      {/* Responsive height — taller on desktop, comfortable on mobile */}
-      <div className="w-full h-[70vh] sm:h-[75vh] md:h-[80vh] min-h-[420px] bg-neutral-900">
+    <Card className="overflow-hidden">
+      <div className="w-full h-[75vh] min-h-[600px] bg-muted">
         <iframe
-          src={embedUrl}
+          src={convertedUrl}
           title={title}
-          className="w-full h-full border-0"
-          allow="autoplay; encrypted-media; fullscreen"
-          allowFullScreen
-          onLoad={() => setLoading(false)}
+          width="100%"
+          height="100%"
+          allow="autoplay"
+          style={{ border: "none" }}
         />
       </div>
     </Card>

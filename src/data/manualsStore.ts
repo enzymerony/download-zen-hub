@@ -5,13 +5,35 @@ export type { Manual };
 
 const STORAGE_KEY = "manuals_store_v1";
 const EVENT = "manuals_store_change";
+const LEGACY_MOZILLA_PDF = /cdn\.mozilla\.net\/pdfjs\/tracemonkey\.pdf/i;
+
+function normalize(list: Manual[]): { list: Manual[]; changed: boolean } {
+  let changed = false;
+  const seedById = new Map(seedManuals.map((m) => [m.id, m.pdfUrl]));
+  const fallbackPdf = seedManuals[0]?.pdfUrl ?? "";
+  const normalized = list.map((manual) => {
+    if (!LEGACY_MOZILLA_PDF.test(manual.pdfUrl || "")) return manual;
+    changed = true;
+    return {
+      ...manual,
+      pdfUrl: seedById.get(manual.id) ?? fallbackPdf,
+    };
+  });
+  return { list: normalized, changed };
+}
 
 function load(): Manual[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return seedManuals;
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const normalized = normalize(parsed);
+      if (normalized.changed) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized.list));
+      }
+      return normalized.list;
+    }
   } catch {}
   return seedManuals;
 }
