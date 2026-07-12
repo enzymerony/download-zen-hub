@@ -1,8 +1,10 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { AuthProvider } from "./hooks/useAuth";
 import { Layout } from "./components/Layout";
 import { AdminLayout } from "./components/admin/AdminLayout";
@@ -10,7 +12,6 @@ import Home from "./pages/Home";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
-import PdfToImage from "./pages/PdfToImage";
 import TopUp from "./pages/TopUp";
 import Auth from "./pages/Auth";
 import MyOrders from "./pages/MyOrders";
@@ -27,6 +28,13 @@ import AdminManuals from "./pages/admin/AdminManuals";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+const PdfToImage = lazy(() => import("./pages/PdfToImage"));
+
+const RouteLoader = () => (
+  <div className="min-h-[50vh] flex items-center justify-center">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -41,7 +49,14 @@ const App = () => (
               <Route path="/products" element={<Products />} />
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
-              <Route path="/pdf-to-image" element={<PdfToImage />} />
+              <Route
+                path="/pdf-to-image"
+                element={
+                  <Suspense fallback={<RouteLoader />}>
+                    <PdfToImage />
+                  </Suspense>
+                }
+              />
               <Route path="/topup" element={<TopUp />} />
               <Route path="/my-orders" element={<MyOrders />} />
               <Route path="/about" element={<About />} />
