@@ -1,26 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import * as pdfjsLib from "pdfjs-dist";
-// @ts-ignore vite worker url import
-import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import {
   Search,
   Wallet,
   FileText,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
   Download,
+  Eye,
+  Loader2,
+  X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { useManuals, Manual } from "@/data/manualsStore";
+import { useManuals } from "@/data/manualsStore";
 import { useWallet } from "@/hooks/useWallet";
 import { useAuth } from "@/hooks/useAuth";
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
 
 const DOWNLOAD_KEY = "downloaded_manuals_v1";
 
@@ -39,9 +34,49 @@ function markDownloaded(id: string) {
   }
 }
 
+/** Extract Google Drive file ID from any common Drive URL format. */
+function extractDriveId(url: string): string | null {
+  if (!url) return null;
+  // /file/d/FILE_ID/...
+  const m1 = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (m1) return m1[1];
+  // ?id=FILE_ID or &id=FILE_ID  (open?id= / uc?id=)
+  const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (m2) return m2[1];
+  // /d/FILE_ID
+  const m3 = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (m3) return m3[1];
+  return null;
+}
+
+function isDriveUrl(url: string): boolean {
+  return /drive\.google\.com|docs\.google\.com/.test(url || "");
+}
+
+/** Convert any Drive URL to an embeddable /preview URL. */
+function toDrivePreview(url: string): string {
+  const id = extractDriveId(url);
+  if (!id) return url;
+  return `https://drive.google.com/file/d/${id}/preview`;
+}
+
+/** Best-effort direct download URL for Drive files. */
+function toDriveDownload(url: string): string {
+  const id = extractDriveId(url);
+  if (!id) return url;
+  return `https://drive.google.com/uc?export=download&id=${id}`;
+}
+
 async function triggerDownload(url: string, filename: string) {
+  const isDrive = isDriveUrl(url);
+  const finalUrl = isDrive ? toDriveDownload(url) : url;
   try {
-    const res = await fetch(url);
+    if (isDrive) {
+      // Drive blocks fetch via CORS — open in new tab so browser handles it.
+      window.open(finalUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    const res = await fetch(finalUrl);
     if (!res.ok) throw new Error("fetch failed");
     const blob = await res.blob();
     const objectUrl = URL.createObjectURL(blob);
@@ -53,23 +88,21 @@ async function triggerDownload(url: string, filename: string) {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
   } catch {
-    // CORS or network — fall back to opening in new tab
-    window.open(url, "_blank", "noopener,noreferrer");
+    window.open(finalUrl, "_blank", "noopener,noreferrer");
   }
 }
 
 export default function SewingManualsSection() {
   const allManuals = useManuals();
   const [query, setQuery] = useState("");
-  const [selectedId, setSelectedId] = useState<string>(
-    allManuals[0]?.id ?? ""
-  );
+  const [selectedId, setSelectedId] = useState<string>(allManuals[0]?.id ?? "");
   const [downloaded, setDownloaded] = useState<string[]>(getDownloaded());
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const viewerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { balance, purchaseWithBalance, refetch } = useWallet();
 
   useEffect(() => {
-    // keep selection valid if admin deletes item
     if (allManuals.length && !allManuals.find((m) => m.id === selectedId)) {
       setSelectedId(allManuals[0].id);
     }
@@ -93,47 +126,52 @@ export default function SewingManualsSection() {
 
   if (!selected) return null;
 
-  const isPaid = selected.price > 0;
-  const alreadyPaid = downloaded.includes(selected.id);
+  const handleView = (id: string) => {
+    setSelectedId(id);
+    setViewerOpen(true);
+    setTimeout(() => {
+      viewerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  };
 
-  const handleDownload = async () => {
-    const filename = `${selected.brand}-${selected.model}.pdf`.replace(
-      /\s+/g,
-      "_"
-    );
+  const handleDownload = async (id: string) => {
+    const manual = allManuals.find((m) => m.id === id);
+    if (!manual) return;
+    const isPaid = manual.price > 0;
+    const alreadyPaid = downloaded.includes(manual.id);
+    const filename = `${manual.brand}-${manual.model}.pdf`.replace(/\s+/g, "_");
 
     if (!isPaid || alreadyPaid) {
-      await triggerDownload(selected.pdfUrl, filename);
+      await triggerDownload(manual.pdfUrl, filename);
       toast.success("Download started");
       return;
     }
-
     if (!user) {
       toast.error("Please sign in to download premium manuals.");
       return;
     }
-    if (balance < selected.price) {
+    if (balance < manual.price) {
       toast.error("Insufficient Balance to download this manual.");
       return;
     }
     try {
       const ok = await purchaseWithBalance(
-        selected.id,
-        `${selected.brand} ${selected.model} Manual`,
-        selected.price
+        manual.id,
+        `${manual.brand} ${manual.model} Manual`,
+        manual.price
       );
       if (ok === false) {
         toast.error("Insufficient Balance to download this manual.");
         return;
       }
     } catch (e) {
-      console.warn("purchase failed, allowing download as fallback", e);
+      console.warn("purchase fallback", e);
     }
-    markDownloaded(selected.id);
+    markDownloaded(manual.id);
     setDownloaded(getDownloaded());
     refetch();
-    await triggerDownload(selected.pdfUrl, filename);
-    toast.success(`✅ Purchased & downloaded: ${selected.brand} ${selected.model}`);
+    await triggerDownload(manual.pdfUrl, filename);
+    toast.success(`✅ Purchased & downloaded: ${manual.brand} ${manual.model}`);
   };
 
   return (
@@ -143,309 +181,183 @@ export default function SewingManualsSection() {
           <h2 className="text-3xl md:text-4xl font-bold mb-2">
             Sewing Machine Board Manuals
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm md:text-base">
             Read any manual online for free. Pay only to download premium PDFs.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
-          {/* Sidebar */}
-          <Card className="p-4 h-fit lg:sticky lg:top-20">
-            <div className="relative mb-3">
-              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search machine / board model..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
-              {filtered.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-6">
-                  No manuals found
-                </p>
-              )}
-              {filtered.map((m) => {
-                const active = m.id === selectedId;
-                return (
-                  <button
-                    key={m.id}
-                    onClick={() => setSelectedId(m.id)}
-                    className={`w-full text-left p-3 rounded-lg border transition-all ${
-                      active
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-border hover:border-primary/50 hover:bg-muted/50"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="font-semibold text-sm truncate">
-                          {m.brand} — {m.model}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          Board: {m.boardModel}
-                        </p>
-                      </div>
-                      {m.price > 0 ? (
-                        <Badge variant="default" className="shrink-0">
-                          ৳{m.price}
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="shrink-0">
-                          Free
-                        </Badge>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </Card>
-
-          {/* Viewer */}
-          <div className="space-y-3">
-            <SecurePdfViewer
-              key={selected.id}
-              url={selected.pdfUrl}
-              title={`${selected.brand} ${selected.model}`}
+        {/* Search */}
+        <div className="max-w-xl mx-auto mb-6">
+          <div className="relative">
+            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search brand / machine / board model..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="pl-9 h-11"
             />
+          </div>
+        </div>
 
-            {/* Action bar */}
-            <Card className="p-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <FileText className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="font-semibold text-sm">
+        {/* Manual cards grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          {filtered.length === 0 && (
+            <p className="col-span-full text-center text-muted-foreground py-8">
+              No manuals found
+            </p>
+          )}
+          {filtered.map((m) => {
+            const isPaid = m.price > 0;
+            const alreadyPaid = downloaded.includes(m.id);
+            const active = m.id === selectedId && viewerOpen;
+            return (
+              <Card
+                key={m.id}
+                className={`p-4 flex flex-col gap-3 transition-all hover:shadow-md ${
+                  active ? "ring-2 ring-primary" : ""
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <FileText className="h-4 w-4 text-primary shrink-0" />
+                      <p className="font-semibold text-sm md:text-base truncate">
+                        {m.brand} — {m.model}
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      Board: {m.boardModel}
+                    </p>
+                  </div>
+                  {isPaid ? (
+                    <Badge variant="default" className="shrink-0">
+                      ৳{m.price}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="shrink-0">
+                      Free
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-1.5 h-10"
+                    onClick={() => handleView(m.id)}
+                  >
+                    <Eye className="h-4 w-4" />
+                    View
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="w-full gap-1.5 h-10"
+                    onClick={() => handleDownload(m.id)}
+                  >
+                    <Download className="h-4 w-4" />
+                    {isPaid && !alreadyPaid ? `৳${m.price}` : "Free"}
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Viewer */}
+        {viewerOpen && (
+          <div ref={viewerRef} className="space-y-3 scroll-mt-20">
+            <Card className="p-3 md:p-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <FileText className="h-5 w-5 text-primary shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm truncate">
                     {selected.brand} {selected.model}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground truncate">
                     Board: {selected.boardModel}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 text-xs md:text-sm text-muted-foreground">
                   <Wallet className="h-4 w-4" />
-                  Balance:{" "}
                   <span className="font-semibold text-foreground">
                     ৳{balance.toFixed(0)}
                   </span>
                 </div>
-                {isPaid && !alreadyPaid && (
-                  <Badge variant="default" className="text-sm">
-                    ৳ {selected.price} to download
-                  </Badge>
-                )}
-                <Button onClick={handleDownload} className="gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => handleDownload(selected.id)}
+                  className="gap-1.5"
+                >
                   <Download className="h-4 w-4" />
-                  {isPaid && !alreadyPaid
+                  {selected.price > 0 && !downloaded.includes(selected.id)
                     ? `Buy & Download (৳${selected.price})`
                     : "Download PDF"}
                 </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setViewerOpen(false)}
+                  aria-label="Close viewer"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
             </Card>
+
+            <DrivePdfViewer
+              key={selected.id}
+              url={selected.pdfUrl}
+              title={`${selected.brand} ${selected.model}`}
+            />
           </div>
-        </div>
+        )}
       </div>
     </section>
   );
 }
 
-/* -------------------- Secure PDF Viewer (view-only, no download UI) -------------------- */
+/* ------------------ Google Drive / PDF Iframe Viewer ------------------ */
 
-interface ViewerProps {
-  url: string;
-  title: string;
-}
-
-function SecurePdfViewer({ url, title }: ViewerProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [pdf, setPdf] = useState<any>(null);
-  const [numPages, setNumPages] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [pageTexts, setPageTexts] = useState<string[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const pagesRef = useRef<HTMLDivElement[]>([]);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setPdf(null);
-    setNumPages(0);
-    setPageTexts([]);
-    (async () => {
-      try {
-        const doc = await pdfjsLib.getDocument(url).promise;
-        if (cancelled) return;
-        setPdf(doc);
-        setNumPages(doc.numPages);
-        const texts: string[] = [];
-        for (let i = 1; i <= doc.numPages; i++) {
-          const page = await doc.getPage(i);
-          const tc = await page.getTextContent();
-          texts.push(tc.items.map((it: any) => it.str).join(" "));
-        }
-        if (!cancelled) setPageTexts(texts);
-      } catch (e) {
-        console.error(e);
-        toast.error("Failed to load PDF");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+function DrivePdfViewer({ url, title }: { url: string; title: string }) {
+  const [loading, setLoading] = useState(true);
+  const embedUrl = useMemo(() => {
+    if (!url) return "";
+    if (isDriveUrl(url)) return toDrivePreview(url);
+    return url; // native browser PDF viewer will handle direct .pdf URLs
   }, [url]);
 
   useEffect(() => {
-    if (!pdf) return;
-    let cancelled = false;
-    (async () => {
-      pagesRef.current = pagesRef.current.slice(0, pdf.numPages);
-      for (let i = 1; i <= pdf.numPages; i++) {
-        if (cancelled) return;
-        const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: 1.3 });
-        const wrapper = pagesRef.current[i - 1];
-        if (!wrapper) continue;
-        const canvas = wrapper.querySelector("canvas") as HTMLCanvasElement;
-        if (!canvas) continue;
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        const ctx = canvas.getContext("2d")!;
-        await page.render({ canvasContext: ctx, viewport, canvas } as any)
-          .promise;
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [pdf]);
+    setLoading(true);
+  }, [embedUrl]);
 
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const blockContext = (e: MouseEvent) => e.preventDefault();
-    const blockKeys = (e: KeyboardEvent) => {
-      const k = e.key.toLowerCase();
-      if (
-        (e.ctrlKey || e.metaKey) &&
-        (k === "s" || k === "p" || k === "u" || (e.shiftKey && k === "i"))
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        toast.error("Use the Download PDF button below.");
-      }
-      if (k === "f12") e.preventDefault();
-    };
-    el.addEventListener("contextmenu", blockContext);
-    window.addEventListener("keydown", blockKeys);
-    return () => {
-      el.removeEventListener("contextmenu", blockContext);
-      window.removeEventListener("keydown", blockKeys);
-    };
-  }, []);
-
-  const handleSearch = () => {
-    const q = searchTerm.trim().toLowerCase();
-    if (!q || pageTexts.length === 0) return;
-    const idx = pageTexts.findIndex((t) => t.toLowerCase().includes(q));
-    if (idx === -1) {
-      toast.error(`"${searchTerm}" not found in this manual`);
-      return;
-    }
-    const pageNum = idx + 1;
-    setCurrentPage(pageNum);
-    const el = pagesRef.current[idx];
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-      el.classList.add("ring-4", "ring-primary");
-      setTimeout(() => el.classList.remove("ring-4", "ring-primary"), 2000);
-    }
-    toast.success(`Found on page ${pageNum}`);
-  };
+  if (!embedUrl) {
+    return (
+      <Card className="p-6 text-center text-muted-foreground">
+        No PDF URL configured for this manual.
+      </Card>
+    );
+  }
 
   return (
-    <Card className="overflow-hidden">
-      <div className="p-3 border-b bg-muted/30 flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[220px]">
-          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search Error Code, Programme No or Issue (e.g. E-3, P05)"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            className="pl-9"
-          />
+    <Card className="overflow-hidden relative">
+      {loading && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-muted/60">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-        <Button onClick={handleSearch} size="sm">
-          Search
-        </Button>
-        <div className="flex items-center gap-1 ml-auto">
-          <Button
-            size="icon"
-            variant="outline"
-            onClick={() => {
-              const p = Math.max(1, currentPage - 1);
-              setCurrentPage(p);
-              pagesRef.current[p - 1]?.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              });
-            }}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm px-2 tabular-nums">
-            {currentPage} / {numPages || "…"}
-          </span>
-          <Button
-            size="icon"
-            variant="outline"
-            onClick={() => {
-              const p = Math.min(numPages, currentPage + 1);
-              setCurrentPage(p);
-              pagesRef.current[p - 1]?.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              });
-            }}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      <div
-        ref={containerRef}
-        className="relative bg-neutral-900 max-h-[70vh] overflow-y-auto select-none"
-        style={{ userSelect: "none" }}
-      >
-        {loading && (
-          <div className="absolute inset-0 flex items-center justify-center z-10 bg-neutral-900/60">
-            <Loader2 className="h-8 w-8 animate-spin text-white" />
-          </div>
-        )}
-        <div className="flex flex-col items-center py-4 gap-4">
-          {Array.from({ length: numPages }).map((_, i) => (
-            <div
-              key={i}
-              ref={(el) => {
-                if (el) pagesRef.current[i] = el;
-              }}
-              className="bg-white shadow-lg transition-all rounded-sm"
-              data-page={i + 1}
-            >
-              <canvas />
-            </div>
-          ))}
-        </div>
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.06] text-4xl font-bold rotate-[-25deg] text-white">
-          10 ANA • {title}
-        </div>
+      )}
+      {/* Responsive height — taller on desktop, comfortable on mobile */}
+      <div className="w-full h-[70vh] sm:h-[75vh] md:h-[80vh] min-h-[420px] bg-neutral-900">
+        <iframe
+          src={embedUrl}
+          title={title}
+          className="w-full h-full border-0"
+          allow="autoplay; encrypted-media; fullscreen"
+          allowFullScreen
+          onLoad={() => setLoading(false)}
+        />
       </div>
     </Card>
   );
