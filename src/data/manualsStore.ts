@@ -15,10 +15,10 @@ type Row = {
   id: string;
   brand: string;
   model: string;
-  board_model: string | null;
+  board_model: string;
   pdf_url: string;
-  price: number | string | null;
-  is_premium: boolean | null;
+  price: number;
+  is_premium: boolean;
 };
 
 function rowToManual(r: Row): Manual {
