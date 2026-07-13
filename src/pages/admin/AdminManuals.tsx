@@ -91,10 +91,10 @@ export default function AdminManuals() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => {
-            if (confirm("Reset to default seed manuals?")) {
-              resetManuals();
-              toast.success("Reset to defaults");
+          onClick={async () => {
+            if (confirm("Reload manuals from database?")) {
+              await resetManuals();
+              toast.success("Refreshed from database");
             }
           }}
         >
