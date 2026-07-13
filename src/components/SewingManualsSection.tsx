@@ -56,7 +56,7 @@ function isDriveUrl(url: string): boolean {
 function toDrivePreview(url: string): string {
   const id = extractDriveId(url);
   if (!id) return url;
-  return `https://drive.google.com/file/d/${id}/preview`;
+  return `https://drive.google.com/file/d/${id}/preview?hl=en`;
 }
 
 /** Best-effort direct download URL for Drive files. */
