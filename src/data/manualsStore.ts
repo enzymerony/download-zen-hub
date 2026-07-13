@@ -25,9 +25,13 @@ function normalize(list: Manual[]): { list: Manual[]; changed: boolean } {
 function load(): Manual[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return seedManuals;
+    if (raw === null) {
+      // First run only — seed defaults and persist so future loads trust storage.
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(seedManuals));
+      return seedManuals;
+    }
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
+    if (Array.isArray(parsed)) {
       const normalized = normalize(parsed);
       if (normalized.changed) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized.list));
