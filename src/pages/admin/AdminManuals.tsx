@@ -41,7 +41,7 @@ export default function AdminManuals() {
     setEditing(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.brand || !form.model || !form.pdfUrl) {
       toast.error("Brand, Model, and PDF URL are required.");
@@ -50,9 +50,13 @@ export default function AdminManuals() {
     const id =
       editing ??
       `${slugify(form.brand)}-${slugify(form.model)}-${Date.now().toString(36)}`;
-    upsertManual({ ...form, id, price: Number(form.price) || 0 });
-    toast.success(editing ? "Manual updated" : "Manual added");
-    reset();
+    try {
+      await upsertManual({ ...form, id, price: Number(form.price) || 0 });
+      toast.success(editing ? "Manual updated" : "Manual added");
+      reset();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save manual");
+    }
   };
 
   const startEdit = (m: Manual) => {
@@ -61,11 +65,15 @@ export default function AdminManuals() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("Delete this manual?")) return;
-    deleteManual(id);
-    if (editing === id) reset();
-    toast.success("Deleted");
+    try {
+      await deleteManual(id);
+      if (editing === id) reset();
+      toast.success("Deleted");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete manual");
+    }
   };
 
   return (
@@ -83,10 +91,10 @@ export default function AdminManuals() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => {
-            if (confirm("Reset to default seed manuals?")) {
-              resetManuals();
-              toast.success("Reset to defaults");
+          onClick={async () => {
+            if (confirm("Reload manuals from database?")) {
+              await resetManuals();
+              toast.success("Refreshed from database");
             }
           }}
         >

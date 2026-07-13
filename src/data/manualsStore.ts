@@ -1,83 +1,137 @@
 import { useEffect, useState } from "react";
-import { manuals as seedManuals, Manual } from "./manuals";
+import { supabase } from "@/integrations/supabase/client";
+import type { Manual } from "./manuals";
 
 export type { Manual };
 
-const STORAGE_KEY = "manuals_store_v1";
 const EVENT = "manuals_store_change";
-const LEGACY_MOZILLA_PDF = /cdn\.mozilla\.net\/pdfjs\/tracemonkey\.pdf/i;
 
-function normalize(list: Manual[]): { list: Manual[]; changed: boolean } {
-  let changed = false;
-  const seedById = new Map(seedManuals.map((m) => [m.id, m.pdfUrl]));
-  const fallbackPdf = seedManuals[0]?.pdfUrl ?? "";
-  const normalized = list.map((manual) => {
-    if (!LEGACY_MOZILLA_PDF.test(manual.pdfUrl || "")) return manual;
-    changed = true;
-    return {
-      ...manual,
-      pdfUrl: seedById.get(manual.id) ?? fallbackPdf,
-    };
-  });
-  return { list: normalized, changed };
+// In-memory cache so navigations don't flash empty state.
+let cache: Manual[] = [];
+let loaded = false;
+let inflight: Promise<Manual[]> | null = null;
+
+type Row = {
+  id: string;
+  brand: string;
+  model: string;
+  board_model: string;
+  pdf_url: string;
+  price: number;
+  is_premium: boolean;
+};
+
+function rowToManual(r: Row): Manual {
+  const price = Number(r.price ?? 0) || 0;
+  return {
+    id: r.id,
+    brand: r.brand,
+    model: r.model,
+    boardModel: r.board_model ?? "",
+    pdfUrl: r.pdf_url,
+    price,
+    isPremium: r.is_premium ?? price > 0,
+  };
 }
 
-function load(): Manual[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw === null) {
-      // First run only — seed defaults and persist so future loads trust storage.
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(seedManuals));
-      return seedManuals;
-    }
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      const normalized = normalize(parsed);
-      if (normalized.changed) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized.list));
-      }
-      return normalized.list;
-    }
-  } catch {}
-  return seedManuals;
+function manualToRow(m: Manual): Row {
+  return {
+    id: m.id,
+    brand: m.brand,
+    model: m.model,
+    board_model: m.boardModel ?? "",
+    pdf_url: m.pdfUrl,
+    price: Number(m.price) || 0,
+    is_premium: (Number(m.price) || 0) > 0,
+  };
 }
 
-function save(list: Manual[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+function emit() {
   window.dispatchEvent(new Event(EVENT));
 }
 
+async function fetchAll(): Promise<Manual[]> {
+  const { data, error } = await supabase
+    .from("manuals")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("[manuals] fetch failed", error);
+    return cache;
+  }
+  cache = (data as Row[]).map(rowToManual);
+  loaded = true;
+  return cache;
+}
+
 export function getManuals(): Manual[] {
-  return load();
+  if (!loaded && !inflight) {
+    inflight = fetchAll().then((list) => {
+      inflight = null;
+      emit();
+      return list;
+    });
+  }
+  return cache;
 }
 
-export function upsertManual(m: Manual) {
-  const list = load();
-  const idx = list.findIndex((x) => x.id === m.id);
-  const next: Manual = { ...m, isPremium: (m.price ?? 0) > 0 };
-  if (idx >= 0) list[idx] = next;
-  else list.unshift(next);
-  save(list);
+export async function refreshManuals(): Promise<Manual[]> {
+  const list = await fetchAll();
+  emit();
+  return list;
 }
 
-export function deleteManual(id: string) {
-  save(load().filter((m) => m.id !== id));
+export async function upsertManual(m: Manual): Promise<void> {
+  const row = manualToRow(m);
+  const { error } = await supabase.from("manuals").upsert(row, { onConflict: "id" });
+  if (error) throw error;
+  await refreshManuals();
 }
 
-export function resetManuals() {
-  save(seedManuals);
+export async function deleteManual(id: string): Promise<void> {
+  const { error } = await supabase.from("manuals").delete().eq("id", id);
+  if (error) throw error;
+  await refreshManuals();
+}
+
+export async function resetManuals(): Promise<void> {
+  // No-op destructive reset; just re-fetch what the DB currently has.
+  await refreshManuals();
 }
 
 export function useManuals() {
-  const [list, setList] = useState<Manual[]>(() => load());
+  const [list, setList] = useState<Manual[]>(() => getManuals());
+
   useEffect(() => {
-    const handler = () => setList(load());
-    window.addEventListener(EVENT, handler);
-    window.addEventListener("storage", handler);
+    let cancelled = false;
+    const sync = () => {
+      if (!cancelled) setList([...cache]);
+    };
+
+    // Initial + refresh on mount so the homepage always reflects DB state.
+    refreshManuals().then(sync).catch(() => {});
+
+    window.addEventListener(EVENT, sync);
+
+    // Realtime: any change in the manuals table triggers a refresh so admin
+    // add/edit/delete propagates instantly across every open browser.
+    const channel = supabase
+      .channel("manuals-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "manuals" },
+        () => {
+          refreshManuals().then(sync).catch(() => {});
+        }
+      )
+      .subscribe();
+
     return () => {
-      window.removeEventListener(EVENT, handler);
-      window.removeEventListener("storage", handler);
+      cancelled = true;
+      window.removeEventListener(EVENT, sync);
+      supabase.removeChannel(channel);
     };
   }, []);
+
   return list;
 }

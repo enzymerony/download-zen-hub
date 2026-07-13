@@ -53,6 +53,42 @@ export type Database = {
         }
         Relationships: []
       }
+      manuals: {
+        Row: {
+          board_model: string
+          brand: string
+          created_at: string
+          id: string
+          is_premium: boolean
+          model: string
+          pdf_url: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          board_model?: string
+          brand: string
+          created_at?: string
+          id: string
+          is_premium?: boolean
+          model: string
+          pdf_url: string
+          price?: number
+          updated_at?: string
+        }
+        Update: {
+          board_model?: string
+          brand?: string
+          created_at?: string
+          id?: string
+          is_premium?: boolean
+          model?: string
+          pdf_url?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           amount: number
