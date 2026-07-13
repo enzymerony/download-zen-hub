@@ -336,8 +336,8 @@ function DrivePdfViewer({ url, title }: { url: string; title: string }) {
   }
 
   return (
-    <Card className="overflow-hidden">
-      <div className="w-full h-[75vh] min-h-[600px] bg-muted">
+    <Card className="overflow-hidden" onContextMenu={(e) => e.preventDefault()}>
+      <div className="relative w-full h-[75vh] min-h-[600px] bg-muted overflow-hidden">
         <iframe
           src={convertedUrl}
           title={title}
@@ -345,6 +345,14 @@ function DrivePdfViewer({ url, title }: { url: string; title: string }) {
           height="100%"
           allow="autoplay"
           style={{ border: "none" }}
+        />
+        {/* Security mask: blocks the "Pop-out / Open in new tab" icon on the
+            top-right of the Google Drive toolbar while keeping the search /
+            find UI on the top-left fully clickable. */}
+        <div
+          className="absolute top-0 right-0 w-[150px] h-[50px] bg-transparent z-10"
+          aria-hidden="true"
+          onContextMenu={(e) => e.preventDefault()}
         />
       </div>
     </Card>
