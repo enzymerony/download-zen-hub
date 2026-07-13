@@ -321,11 +321,31 @@ export default function SewingManualsSection() {
 /* ------------------ Google Drive / PDF Iframe Viewer ------------------ */
 
 function DrivePdfViewer({ url, title }: { url: string; title: string }) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [iframeSrc, setIframeSrc] = useState<string>("");
+
   const convertedUrl = useMemo(() => {
     if (!url) return "";
     if (isDriveUrl(url)) return toDrivePreview(url);
     return url;
   }, [url]);
+
+  useEffect(() => {
+    setIframeSrc(convertedUrl);
+  }, [convertedUrl]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (!q) return;
+
+    if (/^\d+$/.test(q)) {
+      setIframeSrc(`${convertedUrl}#page=${q}`);
+      setSearchQuery("");
+    } else {
+      toast.info("Use the Google Drive search toolbar inside the PDF to find error codes.");
+    }
+  };
 
   if (!convertedUrl) {
     return (
@@ -338,8 +358,27 @@ function DrivePdfViewer({ url, title }: { url: string; title: string }) {
   return (
     <Card className="overflow-hidden" onContextMenu={(e) => e.preventDefault()}>
       <div className="relative w-full h-[75vh] min-h-[600px] bg-muted overflow-hidden">
+        {/* Error Code / Page Search bar */}
+        <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-white/90 p-1.5 rounded-md shadow-md backdrop-blur-sm">
+          <form onSubmit={handleSearchSubmit} className="flex items-center gap-1">
+            <input
+              type="text"
+              placeholder="Search Code / Page..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-36"
+            />
+            <button
+              type="submit"
+              className="p-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Find
+            </button>
+          </form>
+        </div>
+
         <iframe
-          src={convertedUrl}
+          src={iframeSrc || convertedUrl}
           title={title}
           width="100%"
           height="100%"
