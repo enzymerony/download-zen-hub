@@ -65,11 +65,15 @@ export default function AdminManuals() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("Delete this manual?")) return;
-    deleteManual(id);
-    if (editing === id) reset();
-    toast.success("Deleted");
+    try {
+      await deleteManual(id);
+      if (editing === id) reset();
+      toast.success("Deleted");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete manual");
+    }
   };
 
   return (
