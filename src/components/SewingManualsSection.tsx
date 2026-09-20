@@ -91,12 +91,16 @@ async function triggerDownload(url: string, filename: string) {
   }
 }
 
+const FEATURED_LIMIT = 4;
+
 export default function SewingManualsSection() {
   const allManuals = useManuals();
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string>(allManuals[0]?.id ?? "");
   const [downloaded, setDownloaded] = useState<string[]>(getDownloaded());
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [activeBrand, setActiveBrand] = useState<string>("__all");
+  const [showAll, setShowAll] = useState(false);
   const viewerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { balance, purchaseWithBalance, refetch } = useWallet();
@@ -112,16 +116,45 @@ export default function SewingManualsSection() {
     [selectedId, allManuals]
   );
 
+  // All distinct brands, alphabetically sorted, with live counts.
+  const brands = useMemo(() => {
+    const map = new Map<string, number>();
+    allManuals.forEach((m) => {
+      map.set(m.brand, (map.get(m.brand) ?? 0) + 1);
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([name, count]) => ({ name, count }));
+  }, [allManuals]);
+
+  const isSearching = query.trim().length > 0;
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return allManuals;
-    return allManuals.filter(
-      (m) =>
-        m.brand.toLowerCase().includes(q) ||
-        m.model.toLowerCase().includes(q) ||
-        m.boardModel.toLowerCase().includes(q)
-    );
-  }, [query, allManuals]);
+    let list = allManuals;
+    if (activeBrand !== "__all") {
+      list = list.filter((m) => m.brand === activeBrand);
+    }
+    if (q) {
+      list = list.filter(
+        (m) =>
+          m.brand.toLowerCase().includes(q) ||
+          m.model.toLowerCase().includes(q) ||
+          m.boardModel.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [query, allManuals, activeBrand]);
+
+  // Homepage shows 4 featured manuals by default; expanding or selecting a
+  // brand reveals the full filtered list. Search always searches across ALL
+  // manuals regardless of the featured limit.
+  const visibleManuals = useMemo(() => {
+    if (isSearching || showAll || activeBrand !== "__all") {
+      return filtered;
+    }
+    return filtered.slice(0, FEATURED_LIMIT);
+  }, [filtered, isSearching, showAll, activeBrand]);
 
   if (!selected) return null;
 
@@ -173,16 +206,59 @@ export default function SewingManualsSection() {
     toast.success(`✅ Purchased & downloaded: ${manual.brand} ${manual.model}`);
   };
 
+  const handleBrandSelect = (brand: string) => {
+    setActiveBrand(brand);
+    setShowAll(false);
+    // Brand change should reveal all manuals of that brand (bypass featured limit).
+    if (viewerOpen) setViewerOpen(false);
+  };
+
+  const handleReset = () => {
+    setActiveBrand("__all");
+    setShowAll(false);
+    setQuery("");
+  };
+
   return (
     <section className="py-12 bg-muted/20">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <h2 className="text-3xl md:text-4xl font-bold mb-2">
             Sewing Machine Board Manuals
           </h2>
           <p className="text-muted-foreground text-sm md:text-base">
             Read any manual online for free. Pay only to download premium PDFs.
           </p>
+        </div>
+
+        {/* Brand tabs */}
+        <div className="mb-5">
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <BrandPill
+              label="All Brands"
+              count={allManuals.length}
+              active={activeBrand === "__all"}
+              onClick={() => handleBrandSelect("__all")}
+            />
+            {brands.map((b) => (
+              <BrandPill
+                key={b.name}
+                label={b.name}
+                count={b.count}
+                active={activeBrand === b.name}
+                onClick={() => handleBrandSelect(b.name)}
+              />
+            ))}
+            {(activeBrand !== "__all" || showAll || isSearching) && (
+              <button
+                onClick={handleReset}
+                className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary transition-colors px-2 py-1.5"
+              >
+                <X className="h-3.5 w-3.5" />
+                Reset
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Search */}
@@ -195,17 +271,37 @@ export default function SewingManualsSection() {
               onChange={(e) => setQuery(e.target.value)}
               className="pl-9 h-11"
             />
+            {isSearching && (
+              <button
+                onClick={() => setQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:bg-muted"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 
+        {/* Active filter label */}
+        {activeBrand !== "__all" && !isSearching && (
+          <div className="mb-4 text-center">
+            <p className="text-sm text-muted-foreground">
+              Showing{" "}
+              <span className="font-semibold text-foreground">{activeBrand}</span>{" "}
+              manuals ({filtered.length})
+            </p>
+          </div>
+        )}
+
         {/* Manual cards grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-          {filtered.length === 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          {visibleManuals.length === 0 && (
             <p className="col-span-full text-center text-muted-foreground py-8">
               No manuals found
             </p>
           )}
-          {filtered.map((m) => {
+          {visibleManuals.map((m) => {
             const isPaid = m.price > 0;
             const alreadyPaid = downloaded.includes(m.id);
             const active = m.id === selectedId && viewerOpen;
@@ -263,6 +359,22 @@ export default function SewingManualsSection() {
           })}
         </div>
 
+        {/* View all toggle — only on the default homepage view */}
+        {activeBrand === "__all" && !isSearching && !showAll && filtered.length > FEATURED_LIMIT && (
+          <div className="text-center mb-6">
+            <Button variant="outline" onClick={() => setShowAll(true)}>
+              View All Manuals ({filtered.length})
+            </Button>
+          </div>
+        )}
+        {showAll && activeBrand === "__all" && !isSearching && (
+          <div className="text-center mb-6">
+            <Button variant="ghost" onClick={() => setShowAll(false)}>
+              Show Featured Only
+            </Button>
+          </div>
+        )}
+
         {/* Viewer */}
         {viewerOpen && (
           <div ref={viewerRef} className="space-y-3 scroll-mt-20">
@@ -315,6 +427,38 @@ export default function SewingManualsSection() {
         )}
       </div>
     </section>
+  );
+}
+
+function BrandPill({
+  label,
+  count,
+  active,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors border ${
+        active
+          ? "bg-primary text-primary-foreground border-primary"
+          : "bg-background text-foreground border-border hover:bg-muted hover:border-primary/40"
+      }`}
+    >
+      {label}
+      <span
+        className={`text-xs rounded-full px-1.5 py-0.5 ${
+          active ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground"
+        }`}
+      >
+        {count}
+      </span>
+    </button>
   );
 }
 
