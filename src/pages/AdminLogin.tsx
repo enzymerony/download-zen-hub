@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -54,6 +55,23 @@ export default function AdminLogin() {
     setTimeout(() => {
       setIsLoading(false);
     }, 1000);
+  };
+
+  const handleForgot = async () => {
+    setError('');
+    setSuccess('');
+    const parsed = z.string().trim().email().safeParse(email);
+    if (!parsed.success) {
+      setError('Enter your email above first, then click Forgot Password.');
+      return;
+    }
+    setIsLoading(true);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(parsed.data, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setIsLoading(false);
+    if (resetError) setError(resetError.message);
+    else setSuccess('Password reset link sent! Check your email.');
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -143,6 +161,12 @@ export default function AdminLogin() {
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 )}
+                {success && (
+                  <Alert>
+                    <CheckCircle className="h-4 w-4" />
+                    <AlertDescription>{success}</AlertDescription>
+                  </Alert>
+                )}
                 
                 <div className="space-y-2">
                   <Label htmlFor="signin-email">Email</Label>
@@ -179,6 +203,9 @@ export default function AdminLogin() {
                   ) : (
                     'Sign In'
                   )}
+                </Button>
+                <Button type="button" variant="link" className="w-full" disabled={isLoading} onClick={handleForgot}>
+                  Forgot Password?
                 </Button>
               </form>
             </TabsContent>
