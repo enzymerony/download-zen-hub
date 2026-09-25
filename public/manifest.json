@@ -1,9 +1,9 @@
 {
-  "name": "10 ANA Digital Service",
-  "short_name": "10 ANA",
-  "description": "বাংলাদেশের সেরা ডিজিটাল সার্ভিস প্রোভাইডার। সোশ্যাল মিডিয়া সার্ভিস, ওয়েবসাইট ডিজাইন, স্মার্ট সিভি, সিম অফার এবং আরও অনেক কিছু।",
-  "id": "/",
-  "start_url": "/",
+  "name": "Download Zen Hub Admin",
+  "short_name": "Zen Hub Admin",
+  "description": "Download Zen Hub Administration Panel",
+  "id": "/admin",
+  "start_url": "/admin",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -11,7 +11,11 @@
   "theme_color": "#1d4ed8",
   "lang": "bn",
   "dir": "ltr",
-  "categories": ["shopping", "business", "utilities"],
+  "categories": [
+    "shopping",
+    "business",
+    "utilities"
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",
