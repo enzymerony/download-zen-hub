@@ -26,6 +26,7 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminManuals from "./pages/admin/AdminManuals";
 import NotFound from "./pages/NotFound";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 const PdfToImage = lazy(() => import("./pages/PdfToImage"));
@@ -65,6 +66,7 @@ const App = () => (
             </Route>
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route element={<AdminLayout />}>
               <Route path="/admin" element={<AdminOverview />} />
               <Route path="/admin/users" element={<AdminUsers />} />

@@ -180,6 +180,9 @@ export default function AdminLogin() {
                     'Sign In'
                   )}
                 </Button>
+                <Button type="button" variant="link" className="w-full" disabled={isLoading} onClick={handleForgot}>
+                  Forgot Password?
+                </Button>
               </form>
             </TabsContent>
             
