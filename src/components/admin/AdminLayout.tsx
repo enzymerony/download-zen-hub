@@ -3,6 +3,7 @@ import { useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { AdminSidebar } from './AdminSidebar';
 import { Loader2 } from 'lucide-react';
+import { InstallAppButton } from './InstallAppButton';
 
 export function AdminLayout() {
   const { user, isAdmin, loading, adminLoading, signOut } = useAuth();
@@ -46,11 +47,12 @@ export function AdminLayout() {
   }
 
   return (
-    <div className="min-h-screen flex w-full bg-muted/30">
+    <div className="min-h-screen flex w-full bg-muted/30 overflow-x-hidden">
       <AdminSidebar onSignOut={handleSignOut} />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 min-w-0 overflow-auto">
         <Outlet />
       </main>
+      <InstallAppButton />
     </div>
   );
 }
